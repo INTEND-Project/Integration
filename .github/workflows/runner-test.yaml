@@ -1,0 +1,14 @@
+name: Self-Hosted Runner Test
+on: [push, workflow_dispatch]
+
+jobs:
+  test-dind:
+    runs-on: arc-runner-set
+    steps:
+      - name: Verify Docker is running
+        run: docker info
+
+      - name: Test Container Execution
+        run: |
+          docker pull alpine:latest
+          docker run alpine:latest echo "Hello from Docker on Kubernetes!"
