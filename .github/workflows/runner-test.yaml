@@ -14,4 +14,5 @@ jobs:
           docker run alpine:latest echo "Hello from Docker on Kubernetes!"
 
       - name: Sleep
+        if: always()
         run: sleep 600
