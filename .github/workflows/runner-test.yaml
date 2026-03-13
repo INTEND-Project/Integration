@@ -15,4 +15,4 @@ jobs:
 
       - name: Sleep
         if: always()
-        run: sleep 600
+        run: sleep 300
