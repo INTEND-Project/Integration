@@ -13,5 +13,5 @@ jobs:
           docker pull alpine:latest
           docker run alpine:latest echo "Hello from Docker on Kubernetes!"
 
-      - name: Sleep
-        run: sleep 30
+      # - name: Sleep
+      #   run: sleep 30

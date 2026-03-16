@@ -1,0 +1,58 @@
+name: inGraph Setup and Test
+on: [push, workflow_dispatch]
+
+jobs:
+  ingraph-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: Clone inGraph repository
+        run: git clone https://github.com/INTEND-Project/inGraph.git
+
+      - name: Install dependencies
+        run: |
+          cd inGraph
+          pip install -r requirements.txt
+
+      - name: Set up GraphDB
+        run: |
+          curl -L -o graphdb.zip https://download.ontotext.com/owlim/4b42292e-6f30-43eb-9139-ccd9138ac738/graphdb-11.3.0-dist.zip
+          unzip graphdb.zip
+          echo "${{ secrets.GRAPHDB_LICENSE_KEY }}" | base64 -d > graphdb-11.3.0/conf/graphdb.license
+          ls -lh graphdb-11.3.0/conf/graphdb.license
+
+      - name: Start GraphDB
+        run: |
+          ./graphdb-11.3.0/bin/graphdb &
+          for i in {1..30}; do
+            if curl -s http://localhost:7200/protocol > /dev/null; then
+              echo "GraphDB is up!"
+              break
+            fi
+            echo "Waiting for GraphDB..."
+            sleep 5
+          done
+
+      - name: Start inGraph
+        run: |
+          cd inGraph
+          python inGraphApp.py &
+          for i in {1..20}; do
+            if curl -s http://localhost:5000/ > /dev/null; then
+              echo "Server is up!"
+              break
+            fi
+            echo "Waiting for server..."
+            sleep 2
+          done
+
+      - name: Run queries
+        run: |
+          cd inGraph
+          curl -X POST http://localhost:5000/repositories/create -F id=second-graph
+          curl -X POST http://localhost:5000/upload -F repository=second-graph -F file=@KG/fillKG.jsonld
+          curl -X POST http://localhost:5000/query -F repository=second-graph -F file=@query_test/machine5-query.sparql -F format=json
