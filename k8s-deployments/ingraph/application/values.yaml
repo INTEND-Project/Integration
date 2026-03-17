@@ -6,4 +6,4 @@ ingraph:
 
 
   graphdb:
-    baseUrl: graphdb.svc.cluster.local
+    baseUrl: http://graphdb.svc.cluster.local:7200
