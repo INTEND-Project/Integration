@@ -5,4 +5,4 @@ description: Helm chart for deploying GraphDB with ArgoCD
 dependencies:
   - name: graphdb
     repository: https://maven.ontotext.com/repository/helm-public/
-    version: 12.13.1
+    version: 12.3.1
