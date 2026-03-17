@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingraph
+spec:
+  type: ClusterIP
+  selector:
+    app: ingraph
+  ports:    
+    - name: ingraph-api
+      port: 5000
+      targetPort: ingraph-api

@@ -1,0 +1,9 @@
+ingraph:
+
+  image:
+    repository: ghcr.io/intend-project/ingraph
+    tag: sha-f7e3eb0
+
+
+  graphdb:
+    baseUrl: graphdb.svc.cluster.local
