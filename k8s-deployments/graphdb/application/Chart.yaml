@@ -1,0 +1,8 @@
+apiVersion: v2
+name: graphdb
+version: 1.0.0
+description: Helm chart for deploying GraphDB with ArgoCD
+dependencies:
+  - name: graphdb
+    repository: https://www.ontotext.com/products/graphdb/
+    version: 12.13.1

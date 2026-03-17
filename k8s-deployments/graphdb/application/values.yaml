@@ -1,0 +1,11 @@
+graphdb:
+  fullnameOverride: "graphdb"
+  nameOverride: "graphdb"
+  
+  ingress:
+    enabled: false
+
+  license:
+    existingSecret: "graphdb-license"
+
+    
