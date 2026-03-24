@@ -17,6 +17,19 @@ jobs:
           uv sync
           uv pip install -e ".[dev]"
 
+      - name: Start GraphDB
+        run: |
+          cd iExplain
+          docker compose -f lab/intent_graphdb/compose.yaml up -d
+          for i in {1..30}; do
+            if wget -q -O - http://localhost:7200/rest/repositories >/dev/null 2>&1; then
+              echo "GraphDB is up!"
+              break
+            fi
+            echo "Waiting for GraphDB..."
+            sleep 5
+          done
+
       - name: Seed GraphDB
         run: |
           cd iExplain
