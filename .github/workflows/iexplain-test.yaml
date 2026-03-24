@@ -17,18 +17,6 @@ jobs:
           uv sync
           uv pip install -e ".[dev]"
 
-      - name: Start GraphDB
-        run: |
-          docker run -d -p 127.0.0.1:7200:7200 -v graphdb-data:/opt/graphdb/home --name iexplain-intent-graphdb ontotext/graphdb:10.8.3
-          for i in {1..30}; do
-            if wget -q -O - http://localhost:7200/rest/repositories >/dev/null 2>&1; then
-              echo "GraphDB is up!"
-              break
-            fi
-            echo "Waiting for GraphDB..."
-            sleep 5
-          done
-
       - name: Seed GraphDB
         run: |
           cd iExplain
