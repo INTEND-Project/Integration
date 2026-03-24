@@ -18,16 +18,11 @@ jobs:
           cd inGraph
           pip install -r requirements.txt
 
-      - name: Set up GraphDB
-        run: |
-          curl -L -o graphdb.zip https://download.ontotext.com/owlim/4b42292e-6f30-43eb-9139-ccd9138ac738/graphdb-11.3.0-dist.zip
-          unzip graphdb.zip
-          echo "${{ secrets.GRAPHDB_LICENSE_KEY }}" | base64 -d > graphdb-11.3.0/conf/graphdb.license
-          ls -lh graphdb-11.3.0/conf/graphdb.license
-
       - name: Start GraphDB
         run: |
-          ./graphdb-11.3.0/bin/graphdb &
+          mkdir -p data/conf
+          echo "${{ secrets.GRAPHDB_LICENSE_KEY }}" | base64 -d > data/conf/graphdb.license
+          docker run -d -p 127.0.0.1:7200:7200 -v $PWD/data:/opt/graphdb/home --name graphdb-instance-name ontotext/graphdb:11.3.1
           for i in {1..30}; do
             if curl -s http://localhost:7200/protocol > /dev/null; then
               echo "GraphDB is up!"
