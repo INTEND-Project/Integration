@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: iexplain-pod
+  labels:
+    app: iexplain
+spec:
+  containers:
+    - name: iexplain
+      image: {{ .Values.iexplain.image.repository }}:{{ .Values.iexplain.image.tag }}
+      ports:
+        - name: iexplain-api
+          containerPort: 8000        
+      env:
+        - name: IEXPLAIN_INTENT_GRAPHDB_URL
+          value: {{ .Values.iexplain.graphdb.baseUrl }}
+        - name: IEXPLAIN_INTENT_GRAPHDB_REPOSITORY
+          value: {{ .Values.iexplain.graphdb.repository }}
+        - name: OPENAI_BASE_URL
+          value: {{ .Values.iexplain.openai.baseUrl }}
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: openai-api-key
+              key: OPENAI_API_KEY
+        

@@ -1,0 +1,13 @@
+iexplain:
+
+  image:
+    repository: ghcr.io/intend-project/iexplain
+    tag: sha-07fcb05
+
+
+  graphdb:
+    baseUrl: http://graphdb.default.svc.cluster.local:7200
+    repository: "intents_and_intent_reports"
+
+  openai:
+    baseUrl: https://openai.dend.ro
