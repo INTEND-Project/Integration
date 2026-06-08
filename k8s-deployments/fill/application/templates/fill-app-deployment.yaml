@@ -24,7 +24,7 @@ spec:
               done
       containers:
         - name: fill-app
-          image: "{{ .Values.fillApp.image }}"
+          image: {{ .Values.fillApp.image }}
           env:
             - name: MONGO_URI
               valuefrom:
