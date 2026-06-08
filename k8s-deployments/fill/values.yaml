@@ -1,0 +1,34 @@
+mongo:
+  image: mongo:6.0
+  host: mongo
+  port: 27017
+  storage: 15Gi  
+
+fillApp:
+  image: ghcr.io/intend-project/fill-app:1.0
+  port: 3000
+
+fillDashboard:
+  image: ghcr.io/intend-project/fill-frontend:1.0
+  port: 80
+
+# mongoExpress:
+#   image: mongo-express:1.0.2-20
+#   port: 8081
+#   username: admin
+
+fillAgent:
+  image: songhui/inswitch:latest
+  port: 8085
+
+fillChat:
+  image: songhui/inswitch-dashboard:latest
+  port: 8086
+
+iexplain:
+  image: ghcr.io/intend-project/iexplain:sha-4fc942e
+  port: 8000
+
+fillSeed:
+  image: ghcr.io/intend-project/fill-seed:1.0
+

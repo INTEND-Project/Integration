@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fill-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fill-dashboard
+  template:
+    metadata:
+      labels:
+        app: fill-dashboard
+    spec:
+      containers:
+        - name: fill-dashboard
+          image: {{ .Values.fillDashboard.image }}
+          ports:
+            - containerPort: {{ .Values.fillDashboard.port }}
