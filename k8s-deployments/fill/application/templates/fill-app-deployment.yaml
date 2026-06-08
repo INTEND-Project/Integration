@@ -27,7 +27,7 @@ spec:
           image: {{ .Values.fillApp.image }}
           env:
             - name: MONGO_URI
-              valuefrom:
+              valueFrom:
                 secretKeyRef:
                   name: mongo-secret
                   key: MONGO_URI
