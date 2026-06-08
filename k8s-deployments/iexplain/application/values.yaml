@@ -2,7 +2,7 @@ iexplain:
 
   image:
     repository: ghcr.io/intend-project/iexplain
-    tag: sha-07fcb05
+    tag: sha-4fc942e
 
 
   graphdb:
