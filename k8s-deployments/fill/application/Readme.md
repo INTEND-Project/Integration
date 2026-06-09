@@ -15,5 +15,10 @@ kubectl patch secret mongo-secret \
   --type merge \
   -p '{"data":{"MONGO_URI":"<BASE64_VALUE>"}}'
 ```
+## Create secret for OpenAI
+
+```bash
+kubectl create secret generic openai-secret --from-literal=OPENAI_API_KEY=<KEY> -n fill
+```
 
 ## Install ArgoCD application from web interface

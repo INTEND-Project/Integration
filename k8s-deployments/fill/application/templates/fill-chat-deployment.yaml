@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fill-chat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fill-chat
+  template:
+    metadata:
+      labels:
+        app: fill-chat
+    spec:
+      containers:
+        - name: fill-chat
+          image: {{ .Values.fillChat.image }}
+          ports:
+            - containerPort: {{ .Values.fillChat.port }}
