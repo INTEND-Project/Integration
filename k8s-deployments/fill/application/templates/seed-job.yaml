@@ -11,6 +11,5 @@ spec:
       containers:
         - name: fill-seed
           image: {{ .Values.fillSeed.image }}
-          env:
-            - name: HOST
-              value: {{ .Values.fillSeed.host }}
+          args:
+            - {{ .Values.fillSeed.host | quote }}
