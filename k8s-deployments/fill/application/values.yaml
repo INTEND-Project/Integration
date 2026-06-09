@@ -18,11 +18,11 @@ fillDashboard:
 #   username: admin
 
 fillAgent:
-  image: songhui/inswitch:latest
+  image: ghcr.io/intend-project/inswitch-agent:1.0
   port: 8085
 
 fillChat:
-  image: songhui/inswitch-dashboard:latest
+  image: ghcr.io/intend-project/inswitch-dashboard:1.0
   port: 8086
 
 iexplain:
