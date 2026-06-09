@@ -4,6 +4,7 @@ metadata:
   name: fill-seed
   annotations:
     "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation
 spec:
   template:
     spec:
@@ -11,5 +12,8 @@ spec:
       containers:
         - name: fill-seed
           image: {{ .Values.fillSeed.image }}
+          command:
+            - python3
+            - /app/seed.py
           args:
             - {{ .Values.fillSeed.host | quote }}
