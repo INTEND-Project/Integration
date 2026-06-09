@@ -31,4 +31,5 @@ iexplain:
 
 fillSeed:
   image: ghcr.io/intend-project/fill-seed:1.0
+  host: http://fill-app:3000
 
