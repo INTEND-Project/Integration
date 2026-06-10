@@ -1,4 +1,4 @@
-name: Publish Inswitch Agent Skills Images
+name: Publish inSwitch Agent Skills Images
 
 on:
   push:
