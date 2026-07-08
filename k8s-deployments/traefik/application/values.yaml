@@ -47,8 +47,5 @@ traefik:
     general:
       level: INFO
 
-  additionalArguments:
-    - "--serversTransport.insecureSkipVerify=false"
-
   persistence:
     enabled: false
