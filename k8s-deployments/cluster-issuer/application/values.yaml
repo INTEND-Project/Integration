@@ -3,4 +3,4 @@ issuer:
   email: ""
   server: https://acme-v02.api.letsencrypt.org/directory
   privateKeySecretRef: letsencrypt-production
-  ingressClassName: nginx
+  ingressClassName: traefik
