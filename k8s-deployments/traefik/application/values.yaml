@@ -30,18 +30,21 @@ traefik:
       exposedPort: 80
       expose:
         default: true
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https        
+      http:
+        redirections:
+          entryPoint:
+            to: websecure
+            scheme: https
+            permanent: true
 
     websecure:
       port: 8443
       exposedPort: 443
       expose:
         default: true
-      tls:
-        enabled: true
+      http:
+        tls:
+          enabled: true
 
   logs:
     general:
