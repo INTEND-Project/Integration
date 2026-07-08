@@ -1,0 +1,10 @@
+apiVersion: v2
+name: traefik
+description: Helm chart for deploying Traefik with ArgoCD
+type: application
+version: 1.0.0
+
+dependencies:
+  - name: traefik
+    repository: https://traefik.github.io/charts
+    version: 39.0.9
