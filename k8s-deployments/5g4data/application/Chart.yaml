@@ -1,0 +1,6 @@
+apiVersion: v2
+name: 5g4data
+description: Helm chart for deploying 5G4Data
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

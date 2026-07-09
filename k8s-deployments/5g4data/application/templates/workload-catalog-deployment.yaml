@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workload-catalog
+  labels:
+    app: workload-catalog
+
+spec:
+  replicas: {{ .Values.workloadCatalog.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: workload-catalog
+
+  template:
+    metadata:
+      labels:
+        app: workload-catalog
+
+    spec:
+      containers:
+        - name: workload-catalog
+
+          image: "{{ .Values.workloadCatalog.image.repository }}:{{ .Values.workloadCatalog.image.tag }}"
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 3000
+
+          env:
+            - name: CHARTMUSEUM_URL
+              value: {{ .Values.workloadCatalog.env.CHARTMUSEUM_URL | quote }}
+

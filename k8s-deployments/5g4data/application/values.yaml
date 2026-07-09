@@ -1,0 +1,17 @@
+flaskApp:
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/intend-project/flask-app
+    tag: main
+
+workloadCatalog:
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/intend-project/workload-catalog
+    tag: main
+
+  env:
+    CHARTMUSEUM_URL: "http://chartmuseum:8080"
+
