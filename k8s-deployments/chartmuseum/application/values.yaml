@@ -1,0 +1,18 @@
+chartmuseum:
+
+  replicaCount: 1
+
+  env:
+    open:
+      STORAGE: local
+      DISABLE_API: false
+
+  persistence:
+    enabled: true    
+    size: 20Gi
+
+    
+    path: /storage
+
+  
+  
