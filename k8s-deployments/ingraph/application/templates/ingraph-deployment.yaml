@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingraph
+  labels:
+    app: ingraph
+spec:
+  replicas: {{ .Values.ingraph.replicaCount }}
+  selector:
+    matchLabels:
+      app: ingraph
+  template:
+    metadata:
+      labels:
+        app: ingraph
+    spec:
+      containers:
+        - name: ingraph
+          image: "{{ .Values.ingraph.image.repository }}:{{ .Values.ingraph.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: ingraph-api
+              containerPort: 5000
+          env:
+            - name: GRAPHDB_BASE_URL
+              value: {{ .Values.ingraph.graphdb.baseUrl | quote }}

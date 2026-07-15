@@ -1,4 +1,5 @@
 ingraph:
+  replicaCount: 1
 
   image:
     repository: ghcr.io/intend-project/ingraph
