@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iexplain
+spec:
+  replicas: {{ .Values.iexplain.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: iexplain
+
+  template:
+    metadata:
+      labels:
+        app: iexplain
+
+    spec:
+      containers:
+        - name: iexplain
+          image: "{{ .Values.iexplain.image.repository }}:{{ .Values.iexplain.image.tag }}"
+
+          ports:
+            - name: iexplain-api
+              containerPort: 8000
+
+          env:
+            - name: IEXPLAIN_INTENT_GRAPHDB_URL
+              value: {{ .Values.iexplain.graphdb.baseUrl | quote }}
+
+            - name: IEXPLAIN_INTENT_GRAPHDB_REPOSITORY
+              value: {{ .Values.iexplain.graphdb.repository | quote }}
+
+            - name: OPENAI_BASE_URL
+              value: {{ .Values.iexplain.openai.baseUrl | quote }}
+
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: openai-api-key
+                  key: OPENAI_API_KEY
