@@ -1,17 +1,19 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: flask-app
+  name: flask-app  
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-production
 spec:
   ingressClassName: traefik
+
   tls:
     - hosts:
-        - 5g4data-app.dend.ro
+        - 5g4data-app.intend.dend.ro
+      secretName: flask-app-tls
+
   rules:
-    - host: 5g4data-app.dend.ro
+    - host: 5g4data-app.intend.dend.ro
       http:
         paths:
           - path: /
