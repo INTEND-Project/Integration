@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fill-chat
+spec:
+  selector:
+    app: fill-chat
+  ports:
+    - port: {{ .Values.fillChat.port }}
+      targetPort: {{ .Values.fillChat.port }}
