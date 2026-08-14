@@ -21,7 +21,9 @@ jobs:
           - image: flask-app
             context: 5G4Data-Tutorial
           - image: workload-catalog
-            context: Workload-Catalog    
+            context: Workload-Catalog
+          - image: simulator-agent-kernel
+            context: AgenticDataSimulator/SimulatorAgentKernel
 
     permissions:
       contents: read
