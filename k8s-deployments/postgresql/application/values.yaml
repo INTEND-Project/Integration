@@ -1,4 +1,6 @@
 postgresql:
+  fullnameOverride: postgres
+  
   image:
     tag: "18.4"
 
