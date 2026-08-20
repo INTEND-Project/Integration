@@ -1,0 +1,9 @@
+apiVersion: v2
+name: mongodb
+version: 1.0.0
+description: Helm chart for deploying MongoDB with ArgoCD
+
+dependencies:
+  - name: mongodb
+    repository: oci://registry-1.docker.io/bitnamicharts
+    version: 19.1.31

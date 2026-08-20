@@ -1,0 +1,17 @@
+mongodb:
+  fullnameOverride: mongodb
+
+  image:
+    tag: "8.3.8"    
+
+  architecture: standalone
+
+  auth:
+    enabled: true
+    rootUser: root
+    existingSecret: mongodb-auth
+
+  persistence:
+    enabled: true
+    size: 50Gi
+    
