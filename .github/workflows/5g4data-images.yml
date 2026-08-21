@@ -22,6 +22,10 @@ jobs:
             context: 5G4Data-Tutorial
           - image: workload-catalog
             context: Workload-Catalog
+          - image: a2a-registry-backend
+            context: AgenticDataSimulator/a2a-registry/backend
+          - image: a2a-registry-website
+            context: AgenticDataSimulator/a2a-registry/website            
           - image: simulator-agent-kernel
             context: AgenticDataSimulator/SimulatorAgentKernel
 
