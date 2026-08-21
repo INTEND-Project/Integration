@@ -8,12 +8,13 @@ kubectl create namespace fill
 
 ## Create secret for MongoDB
 
+MongoDB was deployed as standalone in namespace mongodb, database "fill" and user "fill" have been created. 
+MONGO_URI will have this format (password is the password set for the user fill):
+mongodb://fill:password@mongodb.mongodb.svc.cluster.local:27017/fill?authSource=fill
+
 ```bash
-kubectl create secret generic mongo-secret --from-literal=MONGO_INITDB_ROOT_PASSWORD=<PASSWORD> -n fill
-kubectl patch secret mongo-secret \
-  -n fill \
-  --type merge \
-  -p '{"data":{"MONGO_URI":"<BASE64_VALUE>"}}'
+kubectl create secret generic mongo-secret --from-literal=MONGO_URI=<MONGO_URI> -n fill
+
 ```
 ## Create secret for OpenAI
 

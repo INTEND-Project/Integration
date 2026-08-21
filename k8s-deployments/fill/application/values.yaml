@@ -1,8 +1,6 @@
-mongo:
-  image: mongo:6.0
-  host: mongo
+mongo:  
+  host: mongodb.mongodb.svc.cluster.local
   port: 27017
-  storage: 15Gi  
 
 fillApp:
   image: ghcr.io/intend-project/fill-app:1.0
