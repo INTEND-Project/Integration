@@ -2,7 +2,7 @@ mongodb:
   fullnameOverride: mongodb
 
   image:
-    tag: "8.3.8"    
+    digest: sha256:bad42dde77ab1bab863f371b1507f1fe3b67c03832c96a8d75a32fb058cd6893
 
   architecture: standalone
 
