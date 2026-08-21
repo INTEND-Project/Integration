@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: a2a-registry-api  
+  labels:
+    app: a2a-registry-api
+
+spec:
+  replicas: {{ .Values.a2a-registry.api.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: a2a-registry-api
+
+  template:
+    metadata:
+      labels:
+        app: a2a-registry-api
+
+    spec:
+      containers:
+        - name: a2a-registry-api
+
+          image: "{{ .Values.a2a-registry.api.image.repository }}:{{ .Values.a2a-registry.api.image.tag }}"
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8000
+
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: DATABASE_URL
+
+            - name: API_HOST
+              value: {{ .Values.a2a-registry.api.host | quote }}
+
+            - name: API_PORT
+              value: {{ .Values.a2a-registry.api.port | quote }}
+
+            - name: API_RELOAD
+              value: {{ .Values.a2a-registry.api.reload | quote }}
+
+            - name: CORS_ORIGINS
+              value: {{ .Values.a2a-registry.api.corsOrigins | quote }}
+
+            - name: POSTHOG_ENABLED
+              value: {{ .Values.a2a-registry.api.posthogEnabled | quote }}
+
+            - name: HEALTH_CHECK_INTERVAL_SECONDS
+              value: {{ .Values.a2a-registry.api.healthCheck.intervalSeconds | quote }}
+
+            - name: HEALTH_CHECK_TIMEOUT_SECONDS
+              value: {{ .Values.a2a-registry.api.healthCheck.timeoutSeconds | quote }}

@@ -15,3 +15,100 @@ workloadCatalog:
   env:
     CHARTMUSEUM_URL: "http://chartmuseum:8080"
 
+a2a-registry:
+  api:
+    replicaCount: 1
+
+    image:
+      repository: ghcr.io/intend-project/a2a-registry-backend
+      tag: main   
+
+    host: "0.0.0.0"
+    port: 8000
+    reload: "false"
+    corsOrigins: "*"
+    posthogEnabled: "false"
+    healthCheck:
+      intervalSeconds: 300
+      timeoutSeconds: 10
+
+  worker:
+    replicaCount: 1
+
+    image:
+      repository: ghcr.io/intend-project/a2a-registry-backend
+      tag: main
+
+    healthCheck:
+      intervalSeconds: 300
+      timeoutSeconds: 10
+  
+  frontend:
+    replicaCount: 1
+
+    image:
+      repository: ghcr.io/intend-project/a2a-registry-website
+      tag: main
+
+    apiUrl: "http://a2a-registry-api:8000"
+
+# simulatorAgentKernel:
+#   replicaCount: 1
+
+#   image:
+#     repository: ghcr.io/intend-project/simulator-agent-kernel
+#     tag: main
+
+#   apiServer:
+#     enabled: true
+#     host: "0.0.0.0"
+#     port: 3011
+
+#   # a2a:
+#   #   enabled: false
+#   #   registryBaseUrl: "https://start5g-1.cs.uit.no/a2a-registry"
+#   #   agentBaseUrl: "http://intent-generating-agent:3011"
+#   #   agentCardPath: "/.well-known/agent-card.json"
+#   #   autoRegisterOnStartup: true
+
+#   # llm:
+#   #   provider: "openai"
+#   #   openai:
+#   #     model: "gpt-4o-mini"
+#   #     baseUrl: ""
+#   #     temperature: "1"
+#   #   anthropic:
+#   #     model: "claude-3-5-sonnet-latest"
+#   #     baseUrl: "https://api.anthropic.com"
+
+#   workloadCatalog:
+#     baseUrl: "http://chartmuseum:8080"
+
+#   ontology:
+#     root: ""
+#     exampleIntentsRoot: ""
+
+#   graphdb:
+#     username: ""
+#     baseUrl: "http://graphdb.default.svc.cluster.local:7200/"
+#     repositoryId: "intents_and_intent_reports"
+#     infraRepositoryId: "telenor-infrastructure-5g4data"
+#     infraNamedGraph: "http://intendproject.eu/telenor/infra"
+#     infraEndpoint: "http://graphdb.default.svc.cluster.local:7200/repositories/telenor-infrastructure-5g4data"
+#     queryLimit: "0"
+#     contextLimit: "10"
+
+#   # package:
+#   #   enableLoad: true
+#   #   domainPackageDir: "../SimulatorAgentPackages/5g4data-intent-generating-agent"
+#   #   skillFile: "../SimulatorAgentPackages/5g4data-intent-generating-agent/skills/SKILL.md"
+#   #   systemPromptFile: "./SYSTEM_PROMPT.md"
+#   #   shaclShapesFile: "../SimulatorAgentPackages/5g4data-intent-generating-agent/validation/skill_subset_intent_shapes.ttl"
+#   #   shaclMaxRetries: "2"
+#   #   intentReportIntervalMinutes: "10"
+
+#   mlflow:
+#     trackingUri: ""
+#     experimentName: ""
+#     tracingEnabled: true
+

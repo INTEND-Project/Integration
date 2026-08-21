@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: a2a-registry-worker  
+  labels:
+    app: a2a-registry-worker
+
+spec:
+  replicas: {{ .Values.a2a-registry.worker.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: a2a-registry-worker
+
+  template:
+    metadata:
+      labels:
+        app: a2a-registry-worker
+
+    spec:
+      containers:
+        - name: a2a-registry-worker
+
+          image: "{{ .Values.a2a-registry.worker.image.repository }}:{{ .Values.a2a-registry.worker.image.tag }}"
+          imagePullPolicy: IfNotPresent
+
+          command:
+            - python
+            - worker.py
+
+          ports:
+            - containerPort: 8000
+
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: DATABASE_URL
+
+            - name: HEALTH_CHECK_INTERVAL_SECONDS
+              value: {{ .Values.a2a-registry.worker.healthCheck.intervalSeconds | quote }}
+
+            - name: HEALTH_CHECK_TIMEOUT_SECONDS
+              value: {{ .Values.a2a-registry.worker.healthCheck.timeoutSeconds | quote }}
