@@ -1,8 +1,8 @@
 postgresql:
   fullnameOverride: postgres
   
-  image:
-    tag: "18.4"
+  image:    
+    digest: sha256:9a7d0a522a8658fecf55f269f05c0b29ebe88c4ad89d52fbde0f2c9cd8d2ca48
 
   auth:
     enablePostgresUser: true
