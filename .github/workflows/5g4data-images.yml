@@ -13,6 +13,7 @@ env:
 
 jobs:
   build-and-push:
+    name: ${{ matrix.image }}
     runs-on: ubuntu-latest
 
     strategy:
@@ -25,7 +26,10 @@ jobs:
           - image: a2a-registry-backend
             context: AgenticDataSimulator/a2a-registry/backend
           - image: a2a-registry-website
-            context: AgenticDataSimulator/a2a-registry/website            
+            context: AgenticDataSimulator/a2a-registry/website
+            build-args: |
+              PUBLIC_SITE_BASE=${{ vars.A2A_PUBLIC_SITE_BASE }}
+              PUBLIC_API_URL=${{ vars.A2A_PUBLIC_API_URL }}
           - image: simulator-agent-kernel
             context: AgenticDataSimulator/SimulatorAgentKernel
 
@@ -68,6 +72,7 @@ jobs:
         with:
           context: ./${{ matrix.context }}
           file: ./${{ matrix.context }}/Dockerfile
+          build-args: ${{ matrix.build-args }}
           push: true
           platforms: linux/amd64
           provenance: false
