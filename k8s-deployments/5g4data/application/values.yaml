@@ -15,7 +15,7 @@ workloadCatalog:
   env:
     CHARTMUSEUM_URL: "http://chartmuseum:8080"
 
-a2a-registry:
+a2aregistry:
   api:
     replicaCount: 1
 

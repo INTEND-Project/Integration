@@ -6,7 +6,7 @@ metadata:
     app: a2a-registry-frontend
 
 spec:
-  replicas: {{ .Values.a2a-registry.frontend.replicaCount }}
+  replicas: {{ .Values.a2aregistry.frontend.replicaCount }}
 
   selector:
     matchLabels:
@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: "{{ .Values.a2a-registry.frontend.image.repository }}:{{ .Values.a2a-registry.frontend.image.tag }}"
+          image: "{{ .Values.a2aregistry.frontend.image.repository }}:{{ .Values.a2aregistry.frontend.image.tag }}"
           imagePullPolicy: IfNotPresent
 
           ports:
@@ -28,7 +28,7 @@ spec:
 
           env:
             - name: VITE_API_URL
-              value: {{ .Values.a2a-registry.frontend.apiUrl | quote }}
+              value: {{ .Values.a2aregistry.frontend.apiUrl | quote }}
 
             - name: PUBLIC_API_URL
-              value: {{ .Values.a2a-registry.frontend.apiUrl | quote }}
+              value: {{ .Values.a2aregistry.frontend.apiUrl | quote }}

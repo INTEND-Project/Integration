@@ -6,7 +6,7 @@ metadata:
     app: a2a-registry-worker
 
 spec:
-  replicas: {{ .Values.a2a-registry.worker.replicaCount }}
+  replicas: {{ .Values.a2aregistry.worker.replicaCount }}
 
   selector:
     matchLabels:
@@ -21,7 +21,7 @@ spec:
       containers:
         - name: a2a-registry-worker
 
-          image: "{{ .Values.a2a-registry.worker.image.repository }}:{{ .Values.a2a-registry.worker.image.tag }}"
+          image: "{{ .Values.a2aregistry.worker.image.repository }}:{{ .Values.a2aregistry.worker.image.tag }}"
           imagePullPolicy: IfNotPresent
 
           command:
@@ -39,7 +39,7 @@ spec:
                   key: DATABASE_URL
 
             - name: HEALTH_CHECK_INTERVAL_SECONDS
-              value: {{ .Values.a2a-registry.worker.healthCheck.intervalSeconds | quote }}
+              value: {{ .Values.a2aregistry.worker.healthCheck.intervalSeconds | quote }}
 
             - name: HEALTH_CHECK_TIMEOUT_SECONDS
-              value: {{ .Values.a2a-registry.worker.healthCheck.timeoutSeconds | quote }}
+              value: {{ .Values.a2aregistry.worker.healthCheck.timeoutSeconds | quote }}
