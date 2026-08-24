@@ -28,17 +28,11 @@ spec:
             - containerPort: 8000
 
           env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-secret
-                  key: DATABASE_URL
-
             - name: DATABASE_URL_OVERRIDE
               valueFrom:
                 secretKeyRef:
                   name: postgres-secret
-                  key: DATABASE_URL_OVERRIDE
+                  key: DATABASE_URL            
 
             - name: API_HOST
               value: {{ .Values.a2aregistry.api.host | quote }}

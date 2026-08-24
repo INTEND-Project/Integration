@@ -32,17 +32,11 @@ spec:
             - containerPort: 8000
 
           env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-secret
-                  key: DATABASE_URL
-
             - name: DATABASE_URL_OVERRIDE
               valueFrom:
                 secretKeyRef:
                   name: postgres-secret
-                  key: DATABASE_URL_OVERRIDE
+                  key: DATABASE_URL            
 
             - name: HEALTH_CHECK_INTERVAL_SECONDS
               value: {{ .Values.a2aregistry.worker.healthCheck.intervalSeconds | quote }}
