@@ -9,11 +9,11 @@ spec:
 
   tls:
     - hosts:
-        - 5g4data-app.intend.dend.ro
+        - 5g4data-app.intendproject.eu
       secretName: flask-app-tls
 
   rules:
-    - host: 5g4data-app.intend.dend.ro
+    - host: 5g4data-app.intendproject.eu
       http:
         paths:
           - path: /
