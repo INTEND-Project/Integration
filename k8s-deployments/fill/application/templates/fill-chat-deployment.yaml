@@ -15,5 +15,6 @@ spec:
       containers:
         - name: fill-chat
           image: {{ .Values.fillChat.image }}
+          imagePullPolicy: Always
           ports:
             - containerPort: {{ .Values.fillChat.port }}

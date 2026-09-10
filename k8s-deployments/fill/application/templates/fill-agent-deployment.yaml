@@ -15,6 +15,7 @@ spec:
       containers:
         - name: fill-agent
           image: {{ .Values.fillAgent.image }}
+          imagePullPolicy: Always
           env:
             - name: OPENAI_API_KEY
               valueFrom:

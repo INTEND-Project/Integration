@@ -25,6 +25,7 @@ spec:
       containers:
         - name: fill-app
           image: {{ .Values.fillApp.image }}
+          imagePullPolicy: Always
           env:
             - name: MONGO_URI
               valueFrom:

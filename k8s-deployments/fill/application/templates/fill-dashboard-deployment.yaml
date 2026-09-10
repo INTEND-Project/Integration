@@ -15,5 +15,6 @@ spec:
       containers:
         - name: fill-dashboard
           image: {{ .Values.fillDashboard.image }}
+          imagePullPolicy: Always
           ports:
             - containerPort: {{ .Values.fillDashboard.port }}
