@@ -3,11 +3,11 @@ mongo:
   port: 27017
 
 fillApp:
-  image: ghcr.io/intend-project/fill-app:1.0
+  image: ghcr.io/intend-project/fill-app:main
   port: 3000
 
 fillDashboard:
-  image: ghcr.io/intend-project/fill-frontend:1.0
+  image: ghcr.io/intend-project/fill-frontend:main
   port: 80
 
 # mongoExpress:
@@ -16,11 +16,11 @@ fillDashboard:
 #   username: admin
 
 fillAgent:
-  image: ghcr.io/intend-project/inswitch-agent:1.0
+  image: ghcr.io/intend-project/inswitch-agent:main
   port: 8085
 
 fillChat:
-  image: ghcr.io/intend-project/inswitch-dashboard:1.0
+  image: ghcr.io/intend-project/inswitch-dashboard:main
   port: 8086
 
 iexplain:
@@ -28,6 +28,6 @@ iexplain:
   port: 8000
 
 fillSeed:
-  image: ghcr.io/intend-project/fill-seed:1.0
+  image: ghcr.io/intend-project/fill-seed:main
   host: http://fill-app:3000
 
