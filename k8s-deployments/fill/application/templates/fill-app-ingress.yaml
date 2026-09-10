@@ -1,9 +1,10 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: fill-dashboard  
+  name: fill-app
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
+
 spec:
   ingressClassName: traefik
 
@@ -16,6 +17,16 @@ spec:
     - host: fill-app.intendproject.eu
       http:
         paths:
+          # API
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: fill-api
+                port:
+                  number: 3000
+
+          # Frontend
           - path: /
             pathType: Prefix
             backend:
