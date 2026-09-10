@@ -22,7 +22,7 @@ spec:
         - name: workload-catalog
 
           image: "{{ .Values.workloadCatalog.image.repository }}:{{ .Values.workloadCatalog.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
 
           ports:
             - containerPort: 3000

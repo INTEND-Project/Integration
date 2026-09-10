@@ -24,7 +24,7 @@ fillChat:
   port: 8086
 
 iexplain:
-  image: ghcr.io/intend-project/iexplain:sha-4fc942e
+  image: ghcr.io/intend-project/iexplain:main
   port: 8000
 
 fillSeed:

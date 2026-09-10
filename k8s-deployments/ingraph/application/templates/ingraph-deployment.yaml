@@ -17,7 +17,7 @@ spec:
       containers:
         - name: ingraph
           image: "{{ .Values.ingraph.image.repository }}:{{ .Values.ingraph.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - name: ingraph-api
               containerPort: 5000

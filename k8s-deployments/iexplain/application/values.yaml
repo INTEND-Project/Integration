@@ -3,7 +3,7 @@ iexplain:
 
   image:
     repository: ghcr.io/intend-project/iexplain
-    tag: sha-4fc942e
+    tag: main
 
 
   graphdb:

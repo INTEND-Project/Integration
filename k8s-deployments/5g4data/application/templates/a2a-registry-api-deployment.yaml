@@ -22,7 +22,7 @@ spec:
         - name: a2a-registry-api
 
           image: "{{ .Values.a2aregistry.api.image.repository }}:{{ .Values.a2aregistry.api.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
 
           ports:
             - containerPort: 8000

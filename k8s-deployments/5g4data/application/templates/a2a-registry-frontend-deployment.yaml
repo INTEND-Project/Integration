@@ -21,7 +21,7 @@ spec:
       containers:
         - name: frontend
           image: "{{ .Values.a2aregistry.frontend.image.repository }}:{{ .Values.a2aregistry.frontend.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
 
           ports:
             - containerPort: 80
