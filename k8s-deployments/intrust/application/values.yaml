@@ -1,0 +1,19 @@
+intrust:
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/intend-project/intrust
+    tag: main
+
+  database:
+    type: mysql
+    host: mysql.mysql.svc.cluster.local
+    port: 3306
+    name: intrust
+    user: intrust
+
+  storage:
+    dir: storage
+    logDir: logs
+
+  

@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: intrust
+  labels:
+    app: intrust
+spec:
+  replicas: {{ .Values.intrust.replicaCount }}
+  selector:
+    matchLabels:
+      app: intrust
+  template:
+    metadata:
+      labels:
+        app: intrust
+    spec:
+      containers:
+        - name: intrust
+          image: "{{ .Values.intrust.image.repository }}:{{ .Values.intrust.image.tag }}"
+          imagePullPolicy: Always
+
+          ports:
+            - name: intrust-api
+              containerPort: 8000
+          
+          env:
+            - name: DATABASE_TYPE
+              value: {{ .Values.intrust.database.type | quote }}
+
+            - name: MYSQL_HOST
+              value: {{ .Values.intrust.database.host | quote }}
+
+            - name: MYSQL_PORT
+              value: {{ .Values.intrust.database.port | quote }}
+
+            - name: MYSQL_DATABASE
+              value: {{ .Values.intrust.database.name | quote }}
+
+            - name: MYSQL_USER
+              value: {{ .Values.intrust.database.user | quote }}
+
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: intrust-auth
+                  key: MYSQL_PASSWORD
+
+            - name: DATABASE_URL
+              value: "mysql+pymysql://$(MYSQL_USER):$(MYSQL_PASSWORD)@$(MYSQL_HOST):$(MYSQL_PORT)/$(MYSQL_DATABASE)"
+
+            - name: INTRUST_STORAGE_DIR
+              value: {{ .Values.intrust.storage.dir | quote }}
+
+            - name: INTRUST_LOG_DIR
+              value: {{ .Values.intrust.storage.logDir | quote }}            
+
+          
