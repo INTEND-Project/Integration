@@ -1,0 +1,46 @@
+kube-prometheus-stack:
+
+  grafana:
+    enabled: true
+
+    admin:
+      existingSecret: grafana-auth
+      userKey: admin-user
+      passwordKey: admin-password
+
+      persistence:
+        enabled: true
+        size: 20Gi
+
+    # ingress:
+    #   enabled: true
+    #   ingressClassName: traefik
+    #   hosts:
+    #     - grafana.intendproject.eu
+    #   tls:
+    #     - secretName: grafana-tls
+    #       hosts:
+    #         - grafana.intendproject.eu
+
+  prometheus:
+    enabled: true
+
+    prometheusSpec:
+      retention: 15d
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 50Gi
+
+  alertmanager:
+    enabled: true
+
+  nodeExporter:
+    enabled: true
+
+  kubeStateMetrics:
+    enabled: true
