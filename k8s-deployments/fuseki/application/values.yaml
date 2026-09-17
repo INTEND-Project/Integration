@@ -1,0 +1,47 @@
+replicaCount: 1
+
+fullnameOverride: fuseki
+
+image:
+  repository: stain/jena-fuseki
+  tag: "latest"
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 3030
+
+auth:  
+  existingSecret: fuseki-auth
+  passwordKey: ADMIN_PASSWORD
+
+persistence:  
+  accessModes:
+    - ReadWriteOnce
+  size: 30Gi
+
+# resources:
+#   requests:
+#     cpu: 250m
+#     memory: 512Mi
+#   limits:
+#     cpu: "1"
+#     memory: 2Gi
+
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  readOnlyRootFilesystem: true
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
