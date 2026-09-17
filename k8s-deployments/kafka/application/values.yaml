@@ -18,7 +18,7 @@ kafka:
       deleteClaim: false
 
   listeners:
-    - name: auth-pass
+    - name: authpass
       port: 9092
       type: internal
       tls: true
