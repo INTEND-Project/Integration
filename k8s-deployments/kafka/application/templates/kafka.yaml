@@ -12,7 +12,7 @@ spec:
     version: {{ .Values.kafka.version | quote }}
 
     listeners:
-      {{- toYaml .Values.listeners | nindent 6 }}
+      {{- toYaml .Values.kafka.listeners | nindent 6 }}
 
     config:
       default.replication.factor: {{ .Values.kafka.config.defaultReplicationFactor }}
