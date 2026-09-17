@@ -2,18 +2,20 @@
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaUser
 metadata:
-  name: {{ $name }}  
+  name: {{ $name }}
   labels:
     strimzi.io/cluster: {{ $.Values.kafka.name }}
 spec:
   authentication:
     type: {{ $user.authentication.type }}
 
-  {{- if $user.acls }}
+  {{- if $user.authorization }}
   authorization:
-    type: simple
+    type: {{ $user.authorization.type }}
+    {{- if $user.authorization.acls }}
     acls:
-      {{- toYaml $user.acls | nindent 6 }}
+      {{- toYaml $user.authorization.acls | nindent 6 }}
+    {{- end }}
   {{- end }}
 ---
 {{- end }}
