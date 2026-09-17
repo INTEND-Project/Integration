@@ -1,0 +1,31 @@
+apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+
+metadata:
+  name: {{ .Values.kafka.name }}  
+  annotations:
+    strimzi.io/node-pools: enabled
+    strimzi.io/kraft: enabled
+
+spec:
+  kafka:
+    version: {{ .Values.kafka.version | quote }}
+
+    listeners:
+      {{- toYaml .Values.listeners | nindent 6 }}
+
+    config:
+      default.replication.factor: {{ .Values.kafka.config.defaultReplicationFactor }}
+      min.insync.replicas: {{ .Values.kafka.config.minInsyncReplicas }}
+      offsets.topic.replication.factor: {{ .Values.kafka.config.offsetsTopicReplicationFactor }}
+      transaction.state.log.replication.factor: {{ .Values.kafka.config.transactionStateLogReplicationFactor }}
+      transaction.state.log.min.isr: {{ .Values.kafka.config.transactionStateLogMinIsr }}
+
+    {{- with .Values.kafka.resources }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}

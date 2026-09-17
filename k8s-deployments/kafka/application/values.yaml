@@ -1,0 +1,67 @@
+strimzi-kafka-operator:
+  watchNamespaces:
+    - kafka
+
+  replicas: 1
+
+kafka:
+  name: kafka
+  version: "4.3.1"
+
+  nodePool:
+    name: kafka
+    replicas: 2
+
+    storage:
+      type: persistent-claim
+      size: 50Gi
+      deleteClaim: false
+
+  listeners:
+    - name: auth-pass
+      port: 9092
+      type: internal
+      tls: true
+      authentication:
+        type: scram-sha-512
+    
+  config:
+    defaultReplicationFactor: 2
+    minInsyncReplicas: 1
+    offsetsTopicReplicationFactor: 2
+    transactionStateLogReplicationFactor: 2
+    transactionStateLogMinIsr: 1
+
+topics:
+  tasks:
+    partitions: 2
+    replicas: 1
+  responses:
+    partitions: 2
+    replicas: 1
+
+users:
+  operation-manager:
+    authentication:
+      type: scram-sha-512
+    acls:
+      - resource:
+          type: topic
+          name: tasks
+          patternType: literal
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: responses
+          patternType: literal
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: group
+          name: operation-manager
+          patternType: literal
+        operations:
+          - Read
