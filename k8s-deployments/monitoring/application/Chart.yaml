@@ -7,3 +7,7 @@ dependencies:
   - name: kube-prometheus-stack
     repository: https://prometheus-community.github.io/helm-charts
     version: 90.0.0
+  
+  - name: prometheus-pushgateway
+    repository: https://prometheus-community.github.io/helm-charts
+    version: 3.8.0

@@ -55,3 +55,10 @@ kube-prometheus-stack:
 
   kubeStateMetrics:
     enabled: true
+
+prometheus-pushgateway:
+  serviceMonitor:
+    enabled: true
+  additionalLabels:
+    release: monitoring-stack
+  
