@@ -1,0 +1,200 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simulator-agent-kernel
+  labels:
+    app: simulator-agent-kernel
+
+spec:
+  replicas: {{ .Values.simulatorAgentKernel.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: simulator-agent-kernel
+
+  template:
+    metadata:
+      labels:
+        app: simulator-agent-kernel
+
+    spec:
+      containers:
+        - name: simulator-agent-kernel
+
+          image: "{{ .Values.simulatorAgentKernel.image.repository }}:{{ .Values.simulatorAgentKernel.image.tag }}"
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.simulatorAgentKernel.apiServer.port }}
+              protocol: TCP
+
+          env:
+            # --------------------------------------------------
+            # Authentication
+            # --------------------------------------------------
+
+            - name: AGENT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: simulator-agent-kernel-secrets
+                  key: AGENT_API_KEY
+
+            - name: AGENT_API_KEY_HEADER
+              value: "X-Api-Key"
+
+            # --------------------------------------------------
+            # HTTP API server
+            # --------------------------------------------------
+
+            - name: API_SERVER_ENABLED
+              value: {{ .Values.simulatorAgentKernel.apiServer.enabled | quote }}
+
+            - name: API_SERVER_HOST
+              value: {{ .Values.simulatorAgentKernel.apiServer.host | quote }}
+
+            - name: API_SERVER_PORT
+              value: {{ .Values.simulatorAgentKernel.apiServer.port | quote }}
+
+            # --------------------------------------------------
+            # A2A
+            # --------------------------------------------------
+
+            - name: A2A_ENABLED
+              value: {{ .Values.simulatorAgentKernel.a2a.enabled | quote }}
+
+            - name: A2A_REGISTRY_BASE_URL
+              value: {{ .Values.simulatorAgentKernel.a2a.registryBaseUrl | quote }}
+
+            - name: A2A_AGENT_BASE_URL
+              value: {{ .Values.simulatorAgentKernel.a2a.agentBaseUrl | quote }}
+
+            - name: A2A_AGENT_CARD_PATH
+              value: {{ .Values.simulatorAgentKernel.a2a.agentCardPath | quote }}
+
+            - name: A2A_AUTO_REGISTER_ON_STARTUP
+              value: {{ .Values.simulatorAgentKernel.a2a.autoRegisterOnStartup | quote }}
+
+            # --------------------------------------------------
+            # LLM
+            # --------------------------------------------------
+
+            - name: LLM_PROVIDER
+              value: {{ .Values.simulatorAgentKernel.llm.provider | quote }}
+
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: simulator-agent-kernel-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
+
+            - name: OPENAI_MODEL
+              value: {{ .Values.simulatorAgentKernel.llm.openai.model | quote }}
+
+            - name: OPENAI_BASE_URL
+              value: {{ .Values.simulatorAgentKernel.llm.openai.baseUrl | quote }}
+
+            - name: OPENAI_TEMPERATURE
+              value: {{ .Values.simulatorAgentKernel.llm.openai.temperature | quote }}
+
+            - name: SIMULATOR_MODEL
+              value: {{ .Values.simulatorAgentKernel.llm.openai.model | quote }}
+
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: simulator-agent-kernel-secrets
+                  key: ANTHROPIC_API_KEY
+                  optional: true
+
+            - name: ANTHROPIC_MODEL
+              value: {{ .Values.simulatorAgentKernel.llm.anthropic.model | quote }}
+
+            - name: ANTHROPIC_BASE_URL
+              value: {{ .Values.simulatorAgentKernel.llm.anthropic.baseUrl | quote }}
+
+            # --------------------------------------------------
+            # Workload catalogue
+            # --------------------------------------------------
+
+            - name: WORKLOAD_CATALOG_BASE_URL
+              value: {{ .Values.simulatorAgentKernel.workloadCatalog.baseUrl | quote }}
+
+            - name: ONTOLOGY_ROOT
+              value: {{ .Values.simulatorAgentKernel.ontology.root | quote }}
+
+            - name: EXAMPLE_INTENTS_ROOT
+              value: {{ .Values.simulatorAgentKernel.ontology.exampleIntentsRoot | quote }}
+
+            # --------------------------------------------------
+            # GraphDB
+            # --------------------------------------------------
+
+            - name: GRAPHDB_USERNAME
+              value: {{ .Values.simulatorAgentKernel.graphdb.username | quote }}
+
+            - name: GRAPHDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: simulator-agent-kernel-secrets
+                  key: GRAPHDB_PASSWORD
+
+            - name: GRAPHDB_BASE_URL
+              value: {{ .Values.simulatorAgentKernel.graphdb.baseUrl | quote }}
+
+            - name: GRAPHDB_REPOSITORY_ID
+              value: {{ .Values.simulatorAgentKernel.graphdb.repositoryId | quote }}
+
+            - name: GRAPHDB_INFRA_REPOSITORY_ID
+              value: {{ .Values.simulatorAgentKernel.graphdb.infraRepositoryId | quote }}
+
+            - name: GRAPHDB_INFRA_NAMED_GRAPH
+              value: {{ .Values.simulatorAgentKernel.graphdb.infraNamedGraph | quote }}
+
+            - name: GRAPHDB_INFRA_ENDPOINT
+              value: {{ .Values.simulatorAgentKernel.graphdb.infraEndpoint | quote }}
+
+            - name: GRAPHDB_QUERY_LIMIT
+              value: {{ .Values.simulatorAgentKernel.graphdb.queryLimit | quote }}
+
+            - name: GRAPHDB_CONTEXT_LIMIT
+              value: {{ .Values.simulatorAgentKernel.graphdb.contextLimit | quote }}
+
+            # --------------------------------------------------
+            # Package paths
+            # --------------------------------------------------
+
+            - name: ENABLE_PACKAGE_LOAD
+              value: {{ .Values.simulatorAgentKernel.package.enableLoad | quote }}
+
+            - name: DOMAIN_PACKAGE_DIR
+              value: {{ .Values.simulatorAgentKernel.package.domainPackageDir | quote }}
+
+            - name: SKILL_FILE
+              value: {{ .Values.simulatorAgentKernel.package.skillFile | quote }}
+
+            - name: SYSTEM_PROMPT_FILE
+              value: {{ .Values.simulatorAgentKernel.package.systemPromptFile | quote }}
+
+            - name: SHACL_SHAPES_FILE
+              value: {{ .Values.simulatorAgentKernel.package.shaclShapesFile | quote }}
+
+            - name: SHACL_MAX_RETRIES
+              value: {{ .Values.simulatorAgentKernel.package.shaclMaxRetries | quote }}
+
+            - name: INTENT_REPORT_INTERVAL_MINUTES
+              value: {{ .Values.simulatorAgentKernel.package.intentReportIntervalMinutes | quote }}
+
+            # --------------------------------------------------
+            # MLflow
+            # --------------------------------------------------
+
+            - name: MLFLOW_TRACKING_URI
+              value: {{ .Values.simulatorAgentKernel.mlflow.trackingUri | quote }}
+
+            - name: MLFLOW_EXPERIMENT_NAME
+              value: {{ .Values.simulatorAgentKernel.mlflow.experimentName | quote }}
+
+            - name: MLFLOW_TRACING_ENABLED
+              value: {{ .Values.simulatorAgentKernel.mlflow.tracingEnabled | quote }}
