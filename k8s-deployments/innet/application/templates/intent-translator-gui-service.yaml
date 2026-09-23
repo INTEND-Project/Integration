@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: {{ .Release.Name }}-intent-translator-gui
+
+spec:
+  type: ClusterIP
+
+  selector:
+    app: {{ .Release.Name }}-intent-translator-gui
+
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80

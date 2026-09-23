@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: {{ .Release.Name }}-intent-translator-gui
+
+  labels:
+    app: {{ .Release.Name }}-intent-translator-gui
+
+spec:
+  replicas: {{ .Values.intentTranslatorGui.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-intent-translator-gui
+
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-intent-translator-gui
+
+    spec:
+      {{- include "innet.imagePullSecrets" . | nindent 6 }}
+
+      containers:
+        - name: intent-translator-gui
+
+          image: "{{ .Values.intentTranslatorGui.image.repository }}:{{ .Values.intentTranslatorGui.image.tag }}"
+
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 80

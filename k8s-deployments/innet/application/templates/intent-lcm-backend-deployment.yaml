@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: {{ .Release.Name }}-intent-lcm-backend
+
+  labels:
+    app: {{ .Release.Name }}-intent-lcm-backend
+
+spec:
+  replicas: {{ .Values.intentLcmBackend.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-intent-lcm-backend
+
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-intent-lcm-backend
+
+    spec:
+      {{- include "innet.imagePullSecrets" . | nindent 6 }}
+
+      containers:
+        - name: intent-lcm-backend
+
+          image: "{{ .Values.intentLcmBackend.image.repository }}:{{ .Values.intentLcmBackend.image.tag }}"
+
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 8080
+
+          env:
+            - name: BACKEND_ENV
+              value: {{ .Values.intentLcmBackend.environment | quote }}
+
+            - name: CL_GOVERNANCE_URL
+              value: {{ .Values.intentLcmBackend.clGovernanceUrl | quote }}

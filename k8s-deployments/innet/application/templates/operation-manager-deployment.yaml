@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: {{ .Release.Name }}-operation-manager
+
+  labels:
+    app: {{ .Release.Name }}-operation-manager
+
+spec:
+  replicas: {{ .Values.operationManager.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-operation-manager
+
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-operation-manager
+
+    spec:
+      {{- include "innet.imagePullSecrets" . | nindent 6 }}
+
+      containers:
+        - name: operation-manager
+
+          image: "{{ .Values.operationManager.image.repository }}:{{ .Values.operationManager.image.tag }}"
+
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 8080
+
+          env:
+            - name: TASK_TOPIC
+              value: {{ .Values.operationManager.taskTopic | quote }}
+
+            - name: TASK_RESPONSE_TOPIC
+              value: {{ .Values.operationManager.taskResponseTopic | quote }}
+
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.operationManager.kafkaBootstrapServers | quote }}

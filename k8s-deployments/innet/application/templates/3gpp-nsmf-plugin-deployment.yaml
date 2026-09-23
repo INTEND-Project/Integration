@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: {{ .Release.Name }}-3gpp-nsmf-plugin
+
+  labels:
+    app: {{ .Release.Name }}-3gpp-nsmf-plugin
+
+spec:
+  replicas: {{ .Values.plugin3gppNsmf.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-3gpp-nsmf-plugin
+
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-3gpp-nsmf-plugin
+
+    spec:
+      {{- include "innet.imagePullSecrets" . | nindent 6 }}
+
+      containers:
+        - name: 3gpp-nsmf-plugin
+
+          image: "{{ .Values.plugin3gppNsmf.image.repository }}:{{ .Values.plugin3gppNsmf.image.tag }}"
+
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 8080
+
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.plugin3gppNsmf.kafkaBootstrapServers | quote }}
+
+            - name: TASK_TOPIC
+              value: {{ .Values.plugin3gppNsmf.taskTopic | quote }}
+
+            - name: TASK_RESPONSE_TOPIC
+              value: {{ .Values.plugin3gppNsmf.taskResponseTopic | quote }}

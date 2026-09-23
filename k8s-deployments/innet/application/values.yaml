@@ -1,0 +1,61 @@
+intentTranslatorGui:
+  replicaCount: 1
+
+  image:
+    repository: rd-registry.nextworks.it/intent-translator-gui
+    tag: master
+
+
+intentTranslator:
+  replicaCount: 1
+
+  image:
+    repository: rd-registry.nextworks.it/intent-translator-backend
+    tag: master
+
+  environment: production
+
+
+intentLcmBackend:
+  replicaCount: 1
+
+  image:
+    repository: rd-registry.nextworks.it/intent-lcm
+    tag: dev
+
+  environment: production
+  clGovernanceUrl: http://cl-governance:8080/api/v1/
+
+
+ontologyManager:
+  replicaCount: 1
+
+  image:
+    repository: rd-registry.nextworks.it/ontology-manager
+    tag: intend
+
+
+operationManager:
+  replicaCount: 1
+
+  image:
+    repository: rd-registry.nextworks.it/operation-manager
+    tag: dev
+
+  taskTopic: tasks
+  taskResponseTopic: responses
+  kafkaBootstrapServers: intrust-kafka:9092
+
+
+plugin3gppNsmf:
+  replicaCount: 1
+
+  image:
+    repository: rd-registry.nextworks.it/intent-3gpp-nsmf-plugin
+    tag: master
+
+  kafkaBootstrapServers: kafka-kafka-bootstrap.kafka.svc.cluster.local:9092
+
+  taskTopic: tasks
+  taskResponseTopic: responses
+

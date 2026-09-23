@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: {{ .Release.Name }}-ontology-manager
+
+  labels:
+    app: {{ .Release.Name }}-ontology-manager
+
+spec:
+  replicas: {{ .Values.ontologyManager.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-ontology-manager
+
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-ontology-manager
+
+    spec:
+      {{- include "innet.imagePullSecrets" . | nindent 6 }}
+
+      containers:
+        - name: ontology-manager
+
+          image: "{{ .Values.ontologyManager.image.repository }}:{{ .Values.ontologyManager.image.tag }}"
+
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 8081
