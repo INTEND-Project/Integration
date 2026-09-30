@@ -1,3 +1,6 @@
+imagePullSecrets:
+  name: ""
+
 intentTranslatorGui:
   replicaCount: 1
 

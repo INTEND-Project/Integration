@@ -16,10 +16,13 @@ Full release name
 
 {{/*
 Image pull secrets
+
+If imagePullSecrets.name is defined, add the corresponding
+Kubernetes Secret to the Pod specification.
 */}}
 {{- define "innet.imagePullSecrets" -}}
-{{- if .Values.imagePullSecrets.create }}
+{{- if .Values.imagePullSecrets.name }}
 imagePullSecrets:
-  - name: {{ .Values.imagePullSecrets.name }}
+  - name: {{ .Values.imagePullSecrets.name | quote }}
 {{- end }}
 {{- end }}
