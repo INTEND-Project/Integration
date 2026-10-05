@@ -64,7 +64,7 @@ intentLcmBackend:
   replicaCount: 1
 
   image:
-    repository: rd-registry.nextworks.it/intent-lcm-backend
+    repository: rd-registry.nextworks.it/intent-lcm
     tag: intend-master
 
   operationManagementDriver: dummy
