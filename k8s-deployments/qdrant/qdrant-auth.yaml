@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: qdrant-auth  
+type: Opaque
+stringData:  
+  QDRANT__SERVICE__API_KEY: <API_KEY>

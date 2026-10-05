@@ -1,0 +1,16 @@
+qdrant:
+  replicaCount: 1
+
+  image:
+    tag: "v1.19.1"
+  
+  fullnameOverride: qdrant
+
+  persistence:      
+    size: 30Gi
+
+  apiKey:
+    valueFrom:
+      secretKeyRef:
+        name: qdrant-auth
+        key: QDRANT__SERVICE__API_KEY
