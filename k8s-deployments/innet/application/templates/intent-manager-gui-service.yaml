@@ -2,13 +2,13 @@ apiVersion: v1
 kind: Service
 
 metadata:
-  name: {{ .Release.Name }}-operation-manager
+  name: {{ .Release.Name }}-intent-manager-gui
 
 spec:
   type: ClusterIP
 
   selector:
-    app: {{ .Release.Name }}-operation-manager
+    app: {{ .Release.Name }}-intent-manager-gui
 
   ports:
     - name: http

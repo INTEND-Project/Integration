@@ -35,4 +35,58 @@ spec:
 
           env:
             - name: TRANSLATOR_ENV
-              value: {{ .Values.intentTranslator.environment | quote }}
+              value: {{ .Values.intentTranslator.TRANSLATOR_ENV | quote }}
+            
+            - name: SPRING_DATASOURCE_URL
+              value: {{ .Values.intentTranslator.SPRING_DATASOURCE_URL | quote }}
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.intentTranslator.SPRING_DATASOURCE_USERNAME.secretName }}
+                  key: {{ .Values.intentTranslator.SPRING_DATASOURCE_USERNAME.secretKey }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.intentTranslator.SPRING_DATASOURCE_PASSWORD.secretName }}
+                  key: {{ .Values.intentTranslator.SPRING_DATASOURCE_PASSWORD.secretKey }}
+
+            - name: INTENT_SUBMISSION_URL
+              value: {{ .Values.intentTranslator.INTENT_SUBMISSION_URL | quote }}
+            - name: INTENT_MANAGER_PROFILE_URL
+              value: {{ .Values.intentTranslator.INTENT_MANAGER_PROFILE_URL | quote }}
+            - name: INTENT_MANAGER_PROFILE_RESOLUTION_ENABLED
+              value: {{ .Values.intentTranslator.INTENT_MANAGER_PROFILE_RESOLUTION_ENABLED | quote }}
+
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.intentTranslator.OPENAI_API_KEY.secretName }}
+                  key: {{ .Values.intentTranslator.OPENAI_API_KEY.secretKey }}
+            - name: SPRING_AI_OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.intentTranslator.SPRING_AI_OPENAI_API_KEY.secretName }}
+                  key: {{ .Values.intentTranslator.SPRING_AI_OPENAI_API_KEY.secretKey }}
+            - name: GEMINI_API_KEY
+              valueFrom:  
+                secretKeyRef:
+                  name: {{ .Values.intentTranslator.GEMINI_API_KEY.secretName }}
+                  key: {{ .Values.intentTranslator.GEMINI_API_KEY.secretKey }}
+
+            - name: QDRANT_HOST
+              value: {{ .Values.intentTranslator.QDRANT_HOST | quote }}
+            - name: QDRANT_PORT
+              value: {{ .Values.intentTranslator.QDRANT_PORT | quote }}
+            - name: QDRANT_COLLECTION
+              value: {{ .Values.intentTranslator.QDRANT_COLLECTION | quote }}
+
+            - name: INTENT_V2_RAG_ENABLED
+              value: {{ .Values.intentTranslator.INTENT_V2_RAG_ENABLED | quote }}
+            - name: INTENT_V2_RAG_INDEXING_ENABLED
+              value: {{ .Values.intentTranslator.INTENT_V2_RAG_INDEXING_ENABLED | quote }}
+            - name: INTENT_V2_RAG_TOP_K
+              value: {{ .Values.intentTranslator.INTENT_V2_RAG_TOP_K | quote }}
+            - name: INTENT_V2_RAG_SIMILARITY_THRESHOLD
+              value: {{ .Values.intentTranslator.INTENT_V2_RAG_SIMILARITY_THRESHOLD | quote }}
+            - name: INTENT_V2_RAG_INCLUDE_FUSEKI_ENRICHMENT
+              value: {{ .Values.intentTranslator.INTENT_V2_RAG_INCLUDE_FUSEKI_ENRICHMENT | quote }}

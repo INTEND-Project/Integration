@@ -1,64 +1,74 @@
 imagePullSecrets:
   name: "innet-image-pullsecret"
 
-intentTranslatorGui:
+intentManagerGui:
   replicaCount: 1
 
   image:
-    repository: rd-registry.nextworks.it/intent-translator-gui
-    tag: master
+    repository: rd-registry.nextworks.it/intent-manager-gui
+    tag: intend-master
 
+  BE_URL: ""
+  FUSEKI_URL: ""
+  GRAPH_URI: "https://github.com/INTEND-Project/inNet/blob/main/doc/inNet-intent-instances.ttl"
+  OPERATION_MANAGER_URL: "/operation-management"
+  INTERPRETER_URL: ""
+
+  INTENT_LCM_UPSTREAM: "intent-lcm-backend.innet.svc.cluster.local:8080"
+  FUSEKI_UPSTREAM: "fuseki.fuseki.svc.cluster.local:3030"
+  INTENT_TRANSLATOR_UPSTREAM: "innet-intent-translator.innet.svc.cluster.local:8080"
+  OPERATION_MANAGEMENT_UPSTREAM: "innet-intent-lcm-backend.innet.svc.cluster.local:8080"
 
 intentTranslator:
   replicaCount: 1
 
   image:
     repository: rd-registry.nextworks.it/intent-translator-backend
-    tag: master
+    tag: intend-master
 
-  environment: production
+  TRANSLATOR_ENV: production
 
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres.postgres.svc.cluster.local:5432/json_intents_v2
+  SPRING_DATASOURCE_USERNAME:
+    secretName: postgres-auth
+    secretKey: USERNAME
+  SPRING_DATASOURCE_PASSWORD:
+    secretName: postgres-auth
+    secretKey: PASSWORD
+
+  INTENT_SUBMISSION_URL: http://innet-intent-lcm-backend.innet.svc.cluster.local:8080/tmf-api/intentManagement/v5/intent
+  INTENT_MANAGER_PROFILE_URL: http://innet-intent-lcm-backend.innet.svc.cluster.local:8080/tmf-api/intentManagement/v5/intentManagerProfile
+  INTENT_MANAGER_PROFILE_RESOLUTION_ENABLED: "true"
+
+  OPENAI_API_KEY:
+    secretName: openai-api-key
+    secretKey: OPENAI_API_KEY
+  SPRING_AI_OPENAI_API_KEY:
+    secretName: openai-api-key
+    secretKey: OPENAI_API_KEY
+  GEMINI_API_KEY:
+    secretName: gemini-api-key
+    secretKey: GEMINI_API_KEY
+
+  QDRANT_HOST: qdrant.qdrant.svc.cluster.local
+  QDRANT_PORT: 6334
+  QDRANT_COLLECTION: intent-knowledge
+
+  INTENT_V2_RAG_ENABLED: "true"
+  INTENT_V2_RAG_INDEXING_ENABLED: "true"
+  INTENT_V2_RAG_TOP_K: "8"
+  INTENT_V2_RAG_SIMILARITY_THRESHOLD: "0.2"
+  INTENT_V2_RAG_INCLUDE_FUSEKI_ENRICHMENT: "true"
 
 intentLcmBackend:
   replicaCount: 1
 
   image:
-    repository: rd-registry.nextworks.it/intent-lcm
-    tag: dev
+    repository: rd-registry.nextworks.it/intent-lcm-backend
+    tag: intend-master
 
-  environment: production
-  clGovernanceUrl: http://cl-governance:8080/api/v1/
-
-
-ontologyManager:
-  replicaCount: 1
-
-  image:
-    repository: rd-registry.nextworks.it/ontology-manager
-    tag: intend
+  operationManagementDriver: dummy
+  clGovernanceDriver: dummy
 
 
-operationManager:
-  replicaCount: 1
-
-  image:
-    repository: rd-registry.nextworks.it/operation-manager
-    tag: dev
-
-  taskTopic: tasks
-  taskResponseTopic: responses
-  kafkaBootstrapServers: intrust-kafka:9092
-
-
-plugin3gppNsmf:
-  replicaCount: 1
-
-  image:
-    repository: rd-registry.nextworks.it/intent-3gpp-nsmf-plugin
-    tag: master
-
-  kafkaBootstrapServers: kafka-kafka-bootstrap.kafka.svc.cluster.local:9092
-
-  taskTopic: tasks
-  taskResponseTopic: responses
 

@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: {{ .Release.Name }}-intent-manager-gui
+
+  labels:
+    app: {{ .Release.Name }}-intent-manager-gui
+
+spec:
+  replicas: {{ .Values.intentManagerGui.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-intent-manager-gui
+
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-intent-manager-gui
+
+    spec:
+      {{- include "innet.imagePullSecrets" . | nindent 6 }}
+
+      containers:
+        - name: intent-manager-gui
+
+          image: "{{ .Values.intentManagerGui.image.repository }}:{{ .Values.intentManagerGui.image.tag }}"
+
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 8080
+
+          env:
+            - name: BE_URL
+              value: {{ .Values.intentManagerGui.BE_URL | quote }}
+            - name: FUSEKI_URL
+              value: {{ .Values.intentManagerGui.FUSEKI_URL | quote }}
+            - name: GRAPH_URI
+              value: {{ .Values.intentManagerGui.GRAPH_URI | quote }}
+            - name: OPERATION_MANAGER_URL
+              value: {{ .Values.intentManagerGui.OPERATION_MANAGER_URL | quote }}
+            - name: INTERPRETER_URL
+              value: {{ .Values.intentManagerGui.INTERPRETER_URL | quote }}
+            - name: INTENT_LCM_UPSTREAM
+              value: {{ .Values.intentManagerGui.INTENT_LCM_UPSTREAM | quote }}
+            - name: FUSEKI_UPSTREAM
+              value: {{ .Values.intentManagerGui.FUSEKI_UPSTREAM | quote }}
+            - name: INTENT_TRANSLATOR_UPSTREAM
+              value: {{ .Values.intentManagerGui.INTENT_TRANSLATOR_UPSTREAM | quote }}
+            - name: OPERATION_MANAGEMENT_UPSTREAM
+              value: {{ .Values.intentManagerGui.OPERATION_MANAGEMENT_UPSTREAM | quote }}

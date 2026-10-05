@@ -34,8 +34,8 @@ spec:
               containerPort: 8080
 
           env:
-            - name: BACKEND_ENV
-              value: {{ .Values.intentLcmBackend.environment | quote }}
+            - name: OPERATION_MANAGEMENT_DRIVER
+              value: {{ .Values.intentLcmBackend.operationManagementDriver | quote }}
 
-            - name: CL_GOVERNANCE_URL
-              value: {{ .Values.intentLcmBackend.clGovernanceUrl | quote }}
+            - name: CL_GOVERNANCE_DRIVER
+              value: {{ .Values.intentLcmBackend.clGovernanceDriver | quote }}
