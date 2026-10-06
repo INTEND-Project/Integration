@@ -54,8 +54,8 @@ intentTranslator:
   QDRANT_PORT: 6334
   QDRANT_COLLECTION: intent-knowledge
 
-  INTENT_V2_RAG_ENABLED: "true"
-  INTENT_V2_RAG_INDEXING_ENABLED: "true"
+  INTENT_V2_RAG_ENABLED: "false"
+  INTENT_V2_RAG_INDEXING_ENABLED: "false"
   INTENT_V2_RAG_TOP_K: "8"
   INTENT_V2_RAG_SIMILARITY_THRESHOLD: "0.2"
   INTENT_V2_RAG_INCLUDE_FUSEKI_ENRICHMENT: "true"
@@ -67,8 +67,8 @@ intentLcmBackend:
     repository: rd-registry.nextworks.it/intent-lcm
     tag: intend-master
 
-  operationManagementDriver: dummy
-  clGovernanceDriver: dummy
+  OPERATION_MANAGEMENT_DRIVER: dummy
+  CL_GOVENANCE_DRIVER: dummy
 
 
 

@@ -35,7 +35,7 @@ spec:
 
           env:
             - name: OPERATION_MANAGEMENT_DRIVER
-              value: {{ .Values.intentLcmBackend.operationManagementDriver | quote }}
+              value: {{ .Values.intentLcmBackend.OPERATION_MANAGEMENT_DRIVER | quote }}
 
             - name: CL_GOVERNANCE_DRIVER
-              value: {{ .Values.intentLcmBackend.clGovernanceDriver | quote }}
+              value: {{ .Values.intentLcmBackend.CL_GOVENANCE_DRIVER | quote }}
