@@ -1,23 +1,25 @@
 neo4j:
-  name: neo4j  
-  edition: community
-  passwordFromSecret: neo4j-auth
 
-  services:
-    neo4j:
-      spec:
-        type: ClusterIP
+  neo4j:
+    name: neo4j  
+    edition: community
+    passwordFromSecret: neo4j-auth
 
-  # Neo4j listens in plaintext internally
-  config:
-    dbms.connector.https.enabled: "false"
-    dbms.connector.http.enabled: "true"
-    dbms.connector.bolt.tls_level: "DISABLED"
+    services:
+      neo4j:
+        spec:
+          type: ClusterIP
 
-  volumes:
-    data:
-      mode: dynamic
-      dynamic:
-        storageClassName: block-ssd
-        requests:
-          storage: 20Gi
+    # Neo4j listens in plaintext internally
+    config:
+      dbms.connector.https.enabled: "false"
+      dbms.connector.http.enabled: "true"
+      dbms.connector.bolt.tls_level: "DISABLED"
+
+    volumes:
+      data:
+        mode: dynamic
+        dynamic:
+          storageClassName: block-ssd
+          requests:
+            storage: 20Gi
