@@ -1,0 +1,8 @@
+apiVersion: v2
+name: neo4j
+version: 1.0.0
+description: Helm chart for deploying Neo4j with ArgoCD
+dependencies:
+  - name: neo4j
+    repository: https://helm.neo4j.com/neo4j
+    version: 2026.9.0
