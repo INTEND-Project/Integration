@@ -29,4 +29,14 @@ spec:
           env:
             - name: ANALYTICS_ENV
               value: {{ .Values.env.ANALYTICS_ENV | quote }}
+            - name: KNOWLEDGE_GRAPH_NEO4J_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: neo4j-auth
+                  key: KNOWLEDGE_GRAPH_NEO4J_USERNAME
+            - name: KNOWLEDGE_GRAPH_NEO4J_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: neo4j-auth
+                  key: KNOWLEDGE_GRAPH_NEO4J_PASSWORD
           
