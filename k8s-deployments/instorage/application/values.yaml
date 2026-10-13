@@ -19,6 +19,7 @@ env:
 
 intentManager:
   config:
+    port: 5001
     llm_info:
       provider: vllm
       config:
