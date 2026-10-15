@@ -1,0 +1,8 @@
+apiVersion: v2
+name: vault
+version: 1.0.0
+description: Helm chart for deploying Hashicorp Vault with ArgoCD
+dependencies:
+  - name: vault
+    repository: https://helm.releases.hashicorp.com
+    version: 0.34.1

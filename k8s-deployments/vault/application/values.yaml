@@ -1,0 +1,27 @@
+vault:  
+
+  global:
+    enabled: true
+    tlsDisable: true
+
+  injector:
+    enabled: true
+
+  server:
+    enabled: true
+
+    dataStorage:
+      enabled: true
+      size: 10Gi
+  
+    persistentVolumeClaimRetentionPolicy:
+      whenDeleted: Retain
+      whenScaled: Retain
+
+  ui:
+    enabled: true
+    serviceType: ClusterIP
+    
+  
+  
+    
