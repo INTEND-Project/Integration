@@ -21,11 +21,11 @@ intentManager:
   config:
     port: 5001
     llm_info:
-      provider: vllm
+      provider: gemini
       config:
-        model_name: ""
-        model_name_pretty: ""
-        endpoint: ""
+        model_name: "gemini-2.5-flash-preview-04-17"
+        model_name_pretty: "Gemini 2.0 Flash"
+        endpoint: "https://generativelanguage.googleapis.com/v1beta/models"
     knowledge_graph:
       provider: neo4j
       config:
