@@ -1,0 +1,8 @@
+apiVersion: v2
+name: vault-secrets-operator
+version: 1.0.0
+description: Helm chart for deploying Hashicorp Vault Secrets Operator with ArgoCD
+dependencies:
+  - name: vault-secrets-operator
+    repository: https://helm.releases.hashicorp.com
+    version: 1.6.0
