@@ -78,21 +78,3 @@ vault write auth/kubernetes/role/argocd \
   ttl=1h
 ```
 
-- Set environment variables (temporary for testing)
-
-```bash
-kubectl -n argocd set env deployment/argocd-repo-server \
-  --containers=avp,avp-helm,avp-kustomize \
-  VAULT_ADDR="http://vault.vault.svc:8200" \
-  AVP_TYPE="vault" \
-  AVP_AUTH_TYPE="k8s" \
-  AVP_K8S_ROLE="argocd"
-```
-
-- Set environment variables permanent
-
-```bash
-kubectl -n argocd patch deployment argocd-repo-server \
-  --type strategic \
-  --patch-file argocd-repo-server-avp-env-patch.yaml
-```
