@@ -7,7 +7,7 @@ iexplain:
 
 
   graphdb:
-    baseUrl: http://graphdb.default.svc.cluster.local:7200
+    baseUrl: http://graphdb.graphdb.svc.cluster.local:7200
     repository: "intents_and_intent_reports"
 
   openai:
