@@ -73,11 +73,11 @@ simulatorAgentKernel:
 
   graphdb:
     username: ""
-    baseUrl: "http://graphdb.default.svc.cluster.local:7200/"
+    baseUrl: "http://graphdb.graphdb.svc.cluster.local:7200/"
     repositoryId: "intents_and_intent_reports"
     infraRepositoryId: "telenor-infrastructure-5g4data"
     infraNamedGraph: "http://intendproject.eu/telenor/infra"
-    infraEndpoint: "http://graphdb.default.svc.cluster.local:7200/repositories/telenor-infrastructure-5g4data"
+    infraEndpoint: "http://graphdb.graphdb.svc.cluster.local:7200/repositories/telenor-infrastructure-5g4data"
     queryLimit: "0"
     contextLimit: "10"
 
