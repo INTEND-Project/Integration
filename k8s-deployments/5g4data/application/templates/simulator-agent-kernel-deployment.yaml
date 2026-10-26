@@ -92,14 +92,14 @@ spec:
             - name: OPENAI_MODEL
               value: {{ .Values.simulatorAgentKernel.llm.openai.model | quote }}
 
+            - name: OPENAI_SIMULATOR_MODEL
+              value: {{ .Values.simulatorAgentKernel.llm.openai.simulatorModel | quote }}
+
             - name: OPENAI_BASE_URL
               value: {{ .Values.simulatorAgentKernel.llm.openai.baseUrl | quote }}
 
             - name: OPENAI_TEMPERATURE
-              value: {{ .Values.simulatorAgentKernel.llm.openai.temperature | quote }}
-
-            - name: SIMULATOR_MODEL
-              value: {{ .Values.simulatorAgentKernel.llm.openai.model | quote }}
+              value: {{ .Values.simulatorAgentKernel.llm.openai.temperature | quote }}            
 
             - name: ANTHROPIC_API_KEY
               valueFrom:
@@ -122,10 +122,10 @@ spec:
               value: {{ .Values.simulatorAgentKernel.workloadCatalog.baseUrl | quote }}
 
             - name: ONTOLOGY_ROOT
-              value: {{ .Values.simulatorAgentKernel.ontology.root | quote }}
+              value: {{ .Values.simulatorAgentKernel.workloadCatalog.ontologyRoot | quote }}
 
             - name: EXAMPLE_INTENTS_ROOT
-              value: {{ .Values.simulatorAgentKernel.ontology.exampleIntentsRoot | quote }}
+              value: {{ .Values.simulatorAgentKernel.workloadCatalog.exampleIntentsRoot | quote }}
 
             # --------------------------------------------------
             # GraphDB
