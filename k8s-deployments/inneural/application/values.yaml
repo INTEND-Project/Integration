@@ -1,0 +1,48 @@
+backend:
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/intend-project/inneural-backend
+    tag: main
+    pullPolicy: Always
+
+  env:
+    OPENAI_MODEL: gpt-6-luna
+    OPENAI_REASONING_EFFORT: high  
+
+  persistence:
+    enabled: true
+    size: 5Gi    
+
+frontend:
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/intend-project/inneural-backend
+    tag: main
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 80
+
+  nginxConfig: |
+    server {
+      listen 80;
+      server_name _;
+      root /usr/share/nginx/html;
+      index index.html;
+
+      location /api/ {
+          proxy_pass http://inneural-backend:8000;
+          proxy_set_header Host $host;
+          proxy_read_timeout 180s;
+      }
+
+      location / {
+          try_files $uri $uri/ /index.html;
+      }
+    }
+
+ingress:
+  enabled: false
