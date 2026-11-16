@@ -1,7 +1,7 @@
 {{/*
 Chart name
 */}}
-{{- define "innet.name" -}}
+{{- define "inneural.name" -}}
 {{- .Chart.Name -}}
 {{- end }}
 
@@ -9,6 +9,6 @@ Chart name
 {{/*
 Full release name
 */}}
-{{- define "innet.fullname" -}}
+{{- define "inneural.fullname" -}}
 {{- printf "%s-%s" .Release.Name .Chart.Name | trunc 63 | trimSuffix "-" -}}
 {{- end }}
