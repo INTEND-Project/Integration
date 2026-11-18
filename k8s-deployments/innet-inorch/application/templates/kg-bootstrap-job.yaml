@@ -1,0 +1,35 @@
+{{- if .Values.knowledgeGraphBootstrap.enabled }}
+{{- $c := .Values.knowledgeGraphBootstrap }}
+{{- $q := .Values.external.qdrant }}
+{{- $env := dict
+  "QDRANT_BASE_URL" (printf "http://%s:%v" (include "im.qdrantHost" .) $q.httpPort)
+  "INTENT_INTERPRETER_BASE_URL" (printf "http://%s:8082" (include "im.name" (dict "root" . "name" "intent-lcm")))
+}}
+{{- $_ := include "im.overlay" (dict "dst" $env "src" $c.env) }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "im.name" (dict "root" . "name" "knowledge-graph-bootstrap") }}
+  labels:
+    {{- include "im.labels" . | nindent 4 }}
+    app.kubernetes.io/name: knowledge-graph-bootstrap
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: {{ $c.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        {{- include "im.labels" . | nindent 8 }}
+        app.kubernetes.io/name: knowledge-graph-bootstrap
+    spec:
+      restartPolicy: Never
+      {{- include "im.podCommon" . | nindent 6 }}
+      containers:
+        - name: knowledge-graph-bootstrap
+          image: {{ include "im.image" (dict "root" . "image" $c.image) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          env:
+            {{- include "im.envList" (dict "root" . "env" $env) | nindent 12 }}
+{{- end }}

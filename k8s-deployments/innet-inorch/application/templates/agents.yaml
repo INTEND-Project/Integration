@@ -1,0 +1,58 @@
+{{- /*
+Agents (plugins/*): Kafka consumers, no Service (compose publishes no port they need).
+Each gets the Kafka settings and the topics, plus its own target system from "external";
+agents.<name>.env overrides any of them. agents.<name>.enabled chooses which agents are deployed.
+*/}}
+{{- $e := .Values.external }}
+{{- $agents := dict "3gpp-nsmf-agent" .Values.agents.nsmf "soccer-agent" .Values.agents.soccer }}
+{{- range $name, $c := $agents }}
+{{- if $c.enabled }}
+{{- $own := dict }}
+{{- if eq $name "3gpp-nsmf-agent" }}
+{{- $own = dict "NSMF_BASE_URL" (include "im.systemUrl" (dict "root" $ "key" "external.nsmf.baseUrl" "url" $e.nsmf.baseUrl "mock" $.Values.mocks.nsmf "name" "nsmf-mock")) }}
+{{- else }}
+{{- $own = dict "SOCCER_BASE_URL" (include "im.systemUrl" (dict "root" $ "key" "external.soccer.baseUrl" "url" $e.soccer.baseUrl "mock" $.Values.mocks.soccer "name" "soccer-mock")) "SOCCER_TENANT_ID" $e.soccer.tenantId }}
+{{- end }}
+{{- $a := dict "c" $c }}
+{{- $env := merge (dict
+  "KAFKA_BOOTSTRAP_SERVERS" (include "im.kafkaBootstrap" $)
+  "TASK_TOPIC" $.Values.topics.task
+  "TASK_RESPONSE_TOPIC" $.Values.topics.response) $own }}
+{{- $_ := include "im.overlay" (dict "dst" $env "src" $a.c.env) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "im.name" (dict "root" $ "name" $name) }}
+  labels:
+    {{- include "im.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "im.selector" (dict "name" $name "root" $) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "im.labels" $ | nindent 8 }}
+        app.kubernetes.io/name: {{ $name }}
+    spec:
+      {{- include "im.podCommon" $ | nindent 6 }}
+      initContainers:
+        {{- include "im.waitFor" (dict "root" $ "targets" (list (printf "%s:%v" (include "im.kafkaHost" $) $e.kafka.port))) | nindent 8 }}
+      containers:
+        - name: {{ $name }}
+          image: {{ include "im.image" (dict "root" $ "image" $a.c.image) }}
+          imagePullPolicy: {{ $.Values.global.imagePullPolicy }}
+          env:
+            {{- include "im.envList" (dict "root" $ "env" $env) | nindent 12 }}
+            {{- with $a.c.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with $a.c.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}
+{{- end }}

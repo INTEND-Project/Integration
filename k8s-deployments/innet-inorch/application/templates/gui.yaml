@@ -1,0 +1,105 @@
+{{- if .Values.gui.enabled }}
+{{- $c := .Values.gui }}
+{{- /* nginx resolves the upstreams at runtime with its own resolver, which ignores the DNS search domains:
+use full Service names. A host with a dot (an external one) is kept as it is. */}}
+{{- $svc := printf "%s.svc.%s" .Release.Namespace (default "cluster.local" .Values.global.clusterDomain) }}
+{{- $fh := include "im.fusekiHost" . }}
+{{- $lcm := include "im.name" (dict "root" . "name" "intent-lcm") }}
+{{- $om := include "im.name" (dict "root" . "name" "operation-management") }}
+{{- $gui := include "im.name" (dict "root" . "name" "intent-manager-gui") }}
+{{- if not (contains "." $fh) }}{{ $fh = printf "%s.%s" $fh $svc }}{{ end }}
+{{- $env := dict
+  "INTENT_LCM_UPSTREAM" (printf "%s.%s:8080" $lcm $svc)
+  "INTENT_TRANSLATOR_UPSTREAM" (printf "%s.%s:8082" $lcm $svc)
+  "OPERATION_MANAGEMENT_UPSTREAM" (printf "%s.%s:8080" $om $svc)
+  "FUSEKI_UPSTREAM" (printf "%s:%v" $fh .Values.external.fuseki.port)
+}}
+{{- $_ := set $env "OPERATION_MANAGER_URL" "/operation-management" }}
+{{- $_ := include "im.overlay" (dict "dst" $env "src" $c.env) }}
+{{- $image := include "im.image" (dict "root" . "image" $c.image) }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $gui }}
+  labels:
+    {{- include "im.labels" . | nindent 4 }}
+    app.kubernetes.io/name: intent-manager-gui
+spec:
+  replicas: {{ $c.replicas }}
+  selector:
+    matchLabels:
+      {{- include "im.selector" (dict "name" "intent-manager-gui" "root" .) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "im.labels" . | nindent 8 }}
+        app.kubernetes.io/name: intent-manager-gui
+    spec:
+      {{- include "im.podCommon" . | nindent 6 }}
+      {{- /* wait for the backends (compose depends_on service_healthy) */}}
+      {{- $targets := list }}
+      {{- if .Values.intentLcm.enabled }}{{ $targets = append $targets (printf "%s:8080" $lcm) }}{{ end }}
+      {{- if .Values.operationManagement.enabled }}{{ $targets = append $targets (printf "%s:8080" $om) }}{{ end }}
+      {{- if or $targets $c.nginxResolver }}
+      initContainers:
+        {{- with $targets }}
+        {{- include "im.waitFor" (dict "root" $ "targets" .) | nindent 8 }}
+        {{- end }}
+        {{- with $c.nginxResolver }}
+        # the image's nginx template, with "resolver 127.0.0.11" (Docker DNS) replaced by the cluster DNS
+        - name: nginx-resolver
+          image: {{ $image }}
+          imagePullPolicy: {{ $.Values.global.imagePullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              R={{ if eq . "auto" }}$(awk '/^nameserver/ {print $2; exit}' /etc/resolv.conf){{ else }}{{ . }}{{ end }}
+              T=/etc/nginx/templates/default.conf.template
+              grep -q 'resolver 127.0.0.11' "$T" || { echo "resolver 127.0.0.11 not found in $T: set gui.nginxResolver to \"\""; exit 1; }
+              sed "s/resolver 127\.0\.0\.11/resolver $R/" "$T" > /templates/default.conf.template
+              grep -n resolver /templates/default.conf.template
+          volumeMounts:
+            - {name: nginx-templates, mountPath: /templates}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: intent-manager-gui
+          image: {{ $image }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - {name: http, containerPort: 8080}
+          env:
+            {{- include "im.envList" (dict "root" . "env" $env) | nindent 12 }}
+            {{- with $c.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          readinessProbe:
+            httpGet: {path: /intent-manager-gui/, port: 8080}
+            periodSeconds: 10
+          {{- with $c.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if $c.nginxResolver }}
+          volumeMounts:
+            - {name: nginx-templates, mountPath: /etc/nginx/templates}
+          {{- end }}
+      {{- if $c.nginxResolver }}
+      volumes:
+        - {name: nginx-templates, emptyDir: {}}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $gui }}
+  labels:
+    {{- include "im.labels" . | nindent 4 }}
+    app.kubernetes.io/name: intent-manager-gui
+spec:
+  selector:
+    {{- include "im.selector" (dict "name" "intent-manager-gui" "root" .) | nindent 4 }}
+  ports:
+    - {name: http, port: 8080, targetPort: 8080}
+{{- end }}

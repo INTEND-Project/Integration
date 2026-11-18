@@ -1,0 +1,73 @@
+{{- if .Values.operationManagement.enabled }}
+{{- $c := .Values.operationManagement }}
+{{- $env := dict
+  "KAFKA_BOOTSTRAP_SERVERS" (include "im.kafkaBootstrap" .)
+  "TASK_TOPIC" .Values.topics.task
+  "TASK_RESPONSE_TOPIC" .Values.topics.response
+}}
+{{- $_ := include "im.overlay" (dict "dst" $env "src" $c.env) }}
+{{- $om := include "im.name" (dict "root" . "name" "operation-management") }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $om }}
+  labels:
+    {{- include "im.labels" . | nindent 4 }}
+    app.kubernetes.io/name: operation-management
+spec:
+  replicas: {{ $c.replicas }}
+  selector:
+    matchLabels:
+      {{- include "im.selector" (dict "name" "operation-management" "root" .) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "im.labels" . | nindent 8 }}
+        app.kubernetes.io/name: operation-management
+    spec:
+      {{- include "im.podCommon" . | nindent 6 }}
+      initContainers:
+        {{- include "im.waitFor" (dict "root" . "targets" (list (printf "%s:%v" (include "im.kafkaHost" .) .Values.external.kafka.port))) | nindent 8 }}
+      containers:
+        - name: operation-management
+          image: {{ include "im.image" (dict "root" . "image" $c.image) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - {name: http, containerPort: 8080}
+          env:
+            {{- include "im.envList" (dict "root" . "env" $env) | nindent 12 }}
+            {{- with $c.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          # compose healthcheck: GET /deployments (start_period 60s, 20 retries every 10s)
+          startupProbe:
+            httpGet: {path: /deployments, port: 8080}
+            periodSeconds: 10
+            failureThreshold: 26
+          readinessProbe:
+            httpGet: {path: /deployments, port: 8080}
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet: {path: /deployments, port: 8080}
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          {{- with $c.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $om }}
+  labels:
+    {{- include "im.labels" . | nindent 4 }}
+    app.kubernetes.io/name: operation-management
+spec:
+  selector:
+    {{- include "im.selector" (dict "name" "operation-management" "root" .) | nindent 4 }}
+  ports:
+    - {name: http, port: 8080, targetPort: 8080}
+{{- end }}

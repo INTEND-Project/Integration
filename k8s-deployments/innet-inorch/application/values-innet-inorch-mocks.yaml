@@ -1,0 +1,50 @@
+# Profile InNet & InOrch with mocks: one release that runs both kinds of intent end to end without any real element,
+# as intend/docker-compose-v3-mock.yaml does with compose.
+# - InNet, network intents: intent-lcm -> operation-management -> 3gpp-nsmf-agent -> nsmf-mock, and the slice
+#   closed loop on clg-mock;
+# - InOrch, deployment intents: intent-lcm -> operation-management -> soccer-agent -> soccer-mock, and the
+#   application closed loop on clg-mock when the intent bounds compute_latency.
+# No address of a real system is left in the rendered chart.
+# Install (credentials in values.secret.yaml, see values.secret.example.yaml):
+#   helm upgrade --install im intent-manager -n intent-manager --create-namespace \
+#     -f intent-manager/values-innet-inorch-mocks.yaml -f intent-manager/values.secret.yaml
+# Only InNet: --set agents.soccer.enabled=false,mocks.soccer.enabled=false
+# Only InOrch: --set agents.nsmf.enabled=false,mocks.nsmf.enabled=false
+# The mocks keep their state in memory: restarting their pods forgets every NSI, service instance and closed loop.
+
+mocks:
+  nsmf: {enabled: true}             # InNet
+  soccer: {enabled: true}           # InOrch
+  clg: {enabled: true}              # both
+
+# Empty URLs = the mocks of this chart (e.g. http://nsmf-mock:9091; mocks have no prefix).
+external:
+  nsmf:
+    baseUrl: ""
+  soccer:
+    baseUrl: ""
+  clg:
+    governanceUrl: ""
+
+agents:
+  nsmf: {enabled: true}             # InNet
+  soccer: {enabled: true}           # InOrch
+
+intentLcm:
+  env:
+    # Closed loops are really created, and terminated, on clg-mock.
+    CL_GOVERNANCE_DRIVER: "rest"
+    # Slice closed loop (InNet): clg-mock emulates it as 5g-slice-assurance. Same as the chart default.
+    TRANSLATOR_NETWORK_SLICE_CLOSED_LOOP: "82399198-1685-4e97-903e-16b815e4b4a0"
+    # Application closed loop (InOrch): the real vllm-compute-assurance-qwen25 descriptor, emulated by clg-mock; the
+    # profile file comes from mocks.clg.applicationClosedLoopProfile.
+    TRANSLATOR_APPLICATION_DEPLOYMENT_CLOSED_LOOP: "1035f45d-0cfc-4511-bdb6-b108fa59319b"
+    TRANSLATOR_APPLICATION_DEPLOYMENT_CLOSED_LOOP_PROFILE: "/app/mock/application-closed-loop-profile.json"
+  # Read only by intent-lcm images built from feature/evolved-intent-reports and feature/cl-reports (not by master):
+  # intent reports fed by the closed-loop events, pod logs and closed-loop reports. Uncomment with such an image,
+  # writing intent-lcm with global.namePrefix (here the default, innet-and-inorch); clg-mock has no prefix.
+  # extraEnv:
+  #   - {name: CL_EVENTS_CALLBACK_URL, value: "http://innet-and-inorch-intent-lcm:8080/api/cl-events"}
+  #   - {name: CL_LOGS_KUBERNETES_API_URL, value: "http://clg-mock:8080/k8s"}
+  #   - {name: CL_LOGS_KUBERNETES_TOKEN, value: "mock-token"}
+  #   - {name: CL_GOVERNANCE_PUBLIC_URL, value: "http://clg-mock:8080/api/v1/"}

@@ -1,0 +1,85 @@
+{{- /*
+Mocks of the systems InNet and InOrch drive (see values.yaml "mocks" and values-innet-inorch-mocks.yaml):
+nsmf-mock (slices, InNet), soccer-mock (deployments, InOrch), clg-mock (closed loops, both). The same images as
+intend/docker-compose-v3-mock.yaml. They keep their state in memory: a pod restart forgets every NSI, service
+instance and closed loop. All off by default.
+*/}}
+{{- $mocks := dict
+  "nsmf-mock" .Values.mocks.nsmf
+  "soccer-mock" .Values.mocks.soccer
+  "clg-mock" .Values.mocks.clg
+}}
+{{- range $name, $m := $mocks }}
+{{- if $m.enabled }}
+{{- $env := dict }}
+{{- $_ := include "im.overlay" (dict "dst" $env "src" $m.env) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "im.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+    app.kubernetes.io/component: mock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "im.selector" (dict "name" $name "root" $) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "im.labels" $ | nindent 8 }}
+        app.kubernetes.io/name: {{ $name }}
+        app.kubernetes.io/component: mock
+    spec:
+      {{- include "im.podCommon" $ | nindent 6 }}
+      containers:
+        - name: {{ $name }}
+          image: {{ include "im.image" (dict "root" $ "image" $m.image) }}
+          imagePullPolicy: {{ $.Values.global.imagePullPolicy }}
+          ports:
+            - {name: http, containerPort: {{ $m.port }}}
+          {{- if $env }}
+          env:
+            {{- include "im.envList" (dict "root" $ "env" $env) | nindent 12 }}
+          {{- end }}
+          readinessProbe:
+            tcpSocket: {port: {{ $m.port }}}
+            periodSeconds: 5
+          {{- with $m.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "im.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+    app.kubernetes.io/component: mock
+spec:
+  selector:
+    {{- include "im.selector" (dict "name" $name "root" $) | nindent 4 }}
+  ports:
+    - {name: http, port: {{ $m.port }}, targetPort: {{ $m.port }}}
+{{- end }}
+{{- end }}
+{{- if and .Values.mocks.clg.enabled .Values.mocks.clg.applicationClosedLoopProfile }}
+---
+# The application closed loop the deployment translator provisions on clg-mock (InOrch), mounted in intent-lcm at
+# /app/mock/application-closed-loop-profile.json, as runtime/mock/ in the compose.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clg-mock-application-profile
+  labels:
+    {{- include "im.labels" . | nindent 4 }}
+    app.kubernetes.io/name: clg-mock
+    app.kubernetes.io/component: mock
+data:
+  application-closed-loop-profile.json: {{ toPrettyJson .Values.mocks.clg.applicationClosedLoopProfile | quote }}
+{{- end }}

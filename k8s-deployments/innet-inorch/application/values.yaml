@@ -1,0 +1,602 @@
+# Intent Manager chart: the components of intent-manager-multirepo and their data services.
+# Defaults reproduce intend/docker-compose-v3.yaml. PostgreSQL, Fuseki, Qdrant and Kafka are deployed too; the systems the
+# agents call (NSMF, SOCCER, CLG) are external: point to them under "external".
+#
+# Environment variables: every component has an "env" map listing EVERY variable it reads, with the code
+# default in the comment above it.
+#   ~ (null)       not set: the application uses its own default (or, where the comment says "chart:", the
+#                  value the chart computes from "external", the topics or the Secret)
+#   "value"        set to this value (the values already set are the ones compose v3 sets)
+# Change a value here or with -f / --set, e.g. --set intentLcm.env.LOG_LEVEL_IT_NEXTWORKS=INFO.
+# "extraEnv" adds anything else (list of {name, value} or {name, valueFrom}).
+# Full table: CONFIGURATION.md.
+
+global:
+  # Prefix of the application components: "<namePrefix>-<component>", e.g. innet-and-inorch-intent-lcm (LCM,
+  # operation-management, GUI, agents, knowledge graph Job). Data services (StatefulSets) and mocks keep the compose
+  # names. "" = no prefix. Lower-case letters, digits and '-', at most 30 characters.
+  namePrefix: innet-and-inorch
+  imageRegistry: rd-registry.nextworks.it:443
+  # Release tag of every Intent Manager image (and of the mocks below): the images tested together on 2026-11-17,
+  # the same digests as master at that date. "master" = whatever master is now.
+  imageTag: intend-munich-2026      # used by every component that does not set image.tag
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets: []              # e.g. [{name: rd-registry}], created by hand (see README)
+  hostAliases: []                   # compose extra_hosts, e.g. [{ip: 10.30.8.178, hostnames: [10.10.0.224.nip.io]}]
+  waitImage: busybox:1.37           # init containers that wait for a TCP port (compose depends_on)
+  clusterDomain: cluster.local      # used to build the full Service names the GUI's nginx resolves
+  nodeSelector: {}                  # every pod, e.g. {kubernetes.io/hostname: node-2}
+  tolerations: []
+
+# Where the components find the data services and the systems the agents call. An empty host (or URL) means the
+# Service this chart deploys, with its prefixed name (postgres, fuseki, qdrant, kafka and the mocks below): set
+# one only to use a service deployed elsewhere.
+external:
+  postgres:
+    host: ""                        # "" = intent-manager-postgres (deployed here)
+    port: 5432
+    database: json_intents_v2
+    username: innet              # password: secrets.postgresPassword
+  fuseki:
+    host: ""                        # "" = fuseki (deployed here)
+    port: 3030
+    dataset: intent
+    username: admin                 # password: secrets.fusekiAdminPassword
+  qdrant:
+    host: ""                        # "" = qdrant (deployed here)
+    httpPort: 6333
+    grpcPort: 6334
+    collection: intent-knowledge
+  kafka:
+    bootstrapServers: ""            # "" = <host>:<port>
+    host: ""                        # host and port the init containers wait for; "" = kafka (deployed here)
+    port: 9092
+  nsmf:
+    baseUrl: http://nsmf-local:8080 # "" = the nsmf mock of this chart (mocks.nsmf.enabled)
+  soccer:
+    baseUrl: http://10.30.8.139:30000 # "" = the soccer mock of this chart (mocks.soccer.enabled)
+    tenantId: admin
+  clg:
+    governanceUrl: http://10.30.8.139:30000/api/v1/ # "" = the clg mock of this chart (mocks.clg.enabled)
+
+# Kafka topics shared by operation-management and the agents.
+topics:
+  task: tasks
+  response: responses
+
+# Credentials. Either name an existing Secret with the keys below, or set the values in a values.secret.yaml
+# that is never committed (template: values.secret.example.yaml) and the chart creates the Secret.
+#   POSTGRES_PASSWORD  FUSEKI_ADMIN_PASSWORD  OPENAI_API_KEY
+secrets:
+  existingSecret: "innet-inorch-secrets"  # name of an existing Secret with the keys below; "" = create a new Secret
+  postgresPassword: ""              # required when existingSecret is empty
+  fusekiAdminPassword: ""           # required when existingSecret is empty
+  openaiApiKey: ""
+
+# Data services, deployed with the Intent Manager (compose v3 images and settings). Turn one off to use an
+# existing service instead, and point external.* to it. PVCs are kept on helm uninstall (delete them by hand).
+# storageClass "" = the cluster default.
+postgres:                           # Service intent-manager-postgres
+  enabled: true
+  image: postgres:16.14@sha256:4eb532412200f7fbbf15d62ee0d96e020a9eae9eaed76066692474a7371c4d83
+  storage: {size: 2Gi, storageClass: ""}
+  resources: {}
+  env:
+    # POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD come from external.postgres and the Secret
+    # data in a subfolder of the volume, so initdb also works on volumes with lost+found
+    PGDATA: /var/lib/postgresql/data/pgdata
+
+fuseki:                             # Service fuseki
+  enabled: true
+  image: stain/jena-fuseki:5.1.0@sha256:b1d0c96f19adddef417520184471ac816cf36c6e72936a88ea02b29f4305929a
+  storage: {size: 2Gi, storageClass: ""}
+  resources: {}
+  env: {}                           # ADMIN_PASSWORD comes from the Secret (FUSEKI_ADMIN_PASSWORD)
+
+qdrant:                             # Service qdrant (HTTP 6333, gRPC 6334)
+  enabled: true
+  image: qdrant/qdrant:v1.13.2
+  storage: {size: 2Gi, storageClass: ""}
+  resources: {}
+  env: {}
+
+kafka:                              # Services kafka and zookeeper, no volumes (as in compose)
+  enabled: true
+  image: rd-registry.nextworks.it/odin-cp-kafka@sha256:9a1e3179fba2a4460964d2848c3f61bf9952db9efa023531fd1d8b4dca9787ef
+  resources: {}
+  env:
+    KAFKA_LISTENERS: INSIDE://0.0.0.0:9092
+    KAFKA_ADVERTISED_LISTENERS: ~     # chart: INSIDE://kafka:9092
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT
+    KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+    KAFKA_BROKER_ID: "1"
+    KAFKA_ZOOKEEPER_CONNECT: ~        # chart: zookeeper:2181
+  zookeeper:
+    image: confluentinc/cp-zookeeper@sha256:3553fda4b3f0cc6fa70cc5be65d0e6c9b1e5258a6fd0ca343aa9821be4973776
+    resources: {}
+    env:
+      ZOOKEEPER_CLIENT_PORT: "2181"
+      ZOOKEEPER_TICK_TIME: "2000"
+
+# intent-lcm: one container, two JVMs. "env" = the LCM (and the start script); "translatorEnv" = the
+# translator, WITHOUT the INTERPRETER_ prefix (the chart adds it: translatorEnv.QDRANT_HOST becomes
+# INTERPRETER_QDRANT_HOST, which the start script passes to the translator as QDRANT_HOST).
+intentLcm:
+  enabled: true
+  image:
+    repository: intent-lcm
+    tag: ""
+  replicas: 1
+  resources: {}
+  env:
+    # not read by the code (from compose); default none
+    BACKEND_ENV: "production"
+    # cl-governance.driver; default "rest"
+    CL_GOVERNANCE_DRIVER: "dummy"
+    # cl-governance.slicer-uri (@Value); default "http://3gpp-nsmf/api/v1/"
+    CL_GOVERNANCE_SLICER_URI: ~
+    # cl-governance.url; default "{{CL_GOVERNANCE_URL}}"; chart: external.clg.governanceUrl
+    CL_GOVERNANCE_URL: ~
+    # tmf.instance-prefix; default "{{INSTANCE_PREFIX}}"; chart: http://<namePrefix>-intent-lcm:8080/tmf-api/intentManagement/v5/intent/
+    INSTANCE_PREFIX: ~
+    # intent-lcm.autostart; default "true"
+    INTENT_LCM_AUTOSTART: "true"
+    # intent.report.knowledge-graph-upload.enabled; default "false"
+    INTENT_REPORT_KNOWLEDGE_GRAPH_UPLOAD_ENABLED: "false"
+    # intent.report.refresh.expiring-within-seconds; default "30"
+    INTENT_REPORT_REFRESH_EXPIRING_WITHIN_SECONDS: ~
+    # intent.report.refresh.poller-delay-ms; default "15000"
+    INTENT_REPORT_REFRESH_POLLER_DELAY_MS: ~
+    # intent.report.validity-minutes; default "10"
+    INTENT_REPORT_VALIDITY_MINUTES: ~
+    # start script: JVM options of the LCM; default empty
+    JAVA_OPTS: ~
+    # logging.level.it.nextworks; default "DEBUG"
+    LOG_LEVEL_IT_NEXTWORKS: ~
+    # openapi.intentManagement.base-path (@Value); default "/tmf-api/intentManagement/v5"
+    OPENAPI_INTENTMANAGEMENT_BASE_PATH: ~
+    # operation-management.driver; default "rest"
+    OPERATION_MANAGEMENT_DRIVER: ~
+    # operation-management.dummy-delay-ms; default "1000"
+    OPERATION_MANAGEMENT_DUMMY_DELAY_MS: ~
+    # operation-management.notification-url; default "${OPERATION_MANAGER_NOTIFICATION_URL:${WORKFLOW_NOTIFICATION_URL:http://intent-lcm-backend:8080/api/notifications}}"; chart: http://<namePrefix>-intent-lcm:8080/api/notifications
+    OPERATION_MANAGEMENT_NOTIFICATION_URL: ~
+    # operation-management.url; default "${OPERATION_MANAGER_URL:${WORKFLOW_MANAGER_URL:http://operation-management:8080}}"; chart: http://<namePrefix>-operation-management:8080
+    OPERATION_MANAGEMENT_URL: ~
+    # server.port; default "8080"
+    SERVER_PORT: "8080"
+    # sparql.data.endpoint; default "http://fuseki:3030/intent/data"; chart: external.fuseki
+    SPARQL_DATA_ENDPOINT: ~
+    # sparql.sparql.endpoint; default "http://fuseki:3030/intent/"; chart: external.fuseki
+    SPARQL_ENDPOINT: ~
+    # sparql.instance-graph; default "https://github.com/INTEND-Project/inNet/blob/main/doc/inNet-intent-instances.ttl"
+    SPARQL_INSTANCE_GRAPH: ~
+    # sparql.ontology-graph; default "https://github.com/INTEND-Project/inNet/blob/main/doc/inNet-intent-ontology.ttl"
+    SPARQL_ONTOLOGY_GRAPH: ~
+    # sparql.credentials.password; default "admin"; chart: Secret FUSEKI_ADMIN_PASSWORD
+    SPARQL_PASSWORD: ~
+    # sparql.update.endpoint; default "http://fuseki:3030/intent/update"; chart: external.fuseki
+    SPARQL_UPDATE_ENDPOINT: ~
+    # sparql.credentials.user; default "admin"; chart: external.fuseki.username
+    SPARQL_USER: ~
+    # spring.datasource.driverClassName; default "org.h2.Driver"
+    SPRING_DATASOURCE_DRIVER: ~
+    # spring.datasource.password; default "password"
+    SPRING_DATASOURCE_PASSWORD: ~
+    # spring.datasource.url; default "jdbc:h2:mem:intent-repository"
+    SPRING_DATASOURCE_URL: ~
+    # spring.datasource.username; default "intent"
+    SPRING_DATASOURCE_USERNAME: ~
+    # spring.hibernate.ddl-auto; default "create"
+    SPRING_JPA_DDL_AUTO: ~
+    # spring.jpa.spring.jpa.database-platform; default "org.hibernate.dialect.H2Dialect"
+    SPRING_JPA_DIALECT: ~
+    # spring.jpa.show-sql; default "false"
+    SPRING_JPA_SHOW_SQL: ~
+    # spring.output.ansi.enabled; default "ALWAYS"
+    SPRING_OUTPUT_ANSI_ENABLED: ~
+    # start script: false = LCM only; default "true"
+    START_TRANSLATOR: ~
+    # tmf.event-predicate (@Value); default "http://tio.models.tmforum.org/tio/v3.6.0/IntentManagementOntology/event"
+    TMF_EVENT_PREDICATE: ~
+    # tmf.icm-prefix (@Value); default "http://tio.models.tmforum.org/tio/v3.6.0/IntentCommonModel/"
+    TMF_ICM_PREFIX: ~
+    # tmf.imo-prefix (@Value); default "http://tio.models.tmforum.org/tio/v3.6.0/IntentManagementOntology/"
+    TMF_IMO_PREFIX: ~
+    # tmf.nxw-prefix (@Value); default "http://nextworks.it/intent#"
+    TMF_NXW_PREFIX: ~
+    # tmf.status-predicate (@Value); default "http://tio.models.tmforum.org/tio/v3.6.0/IntentManagementOntology/handlingState"
+    TMF_STATUS_PREDICATE: ~
+    # translator.application-deployment.closed-loop; default empty
+    TRANSLATOR_APPLICATION_DEPLOYMENT_CLOSED_LOOP: ""
+    # translator.application-deployment.closed-loop-profile; default empty
+    TRANSLATOR_APPLICATION_DEPLOYMENT_CLOSED_LOOP_PROFILE: ""
+    # translator.translator-chain; default "NetworkSliceTranslatorV2,DeploymentTranslatorV2"
+    TRANSLATOR_CHAIN: "NetworkSliceTranslatorV2,DeploymentTranslatorV2"
+    # translator.application-deployment.descriptor-property; default "http://5g4data.eu/5g4data#DeploymentDescriptor"
+    TRANSLATOR_DEPLOYMENT_DESCRIPTOR_PROPERTY: ~
+    # translator.application-deployment.expectation-type; default "http://5g4data.eu/5g4data#DeploymentExpectation"
+    TRANSLATOR_DEPLOYMENT_EXPECTATION_TYPE: ~
+    # translator.network-slice.closed-loop; default "efda92a5-7632-4140-be0c-05c1705e1d7c"
+    TRANSLATOR_NETWORK_SLICE_CLOSED_LOOP: "82399198-1685-4e97-903e-16b815e4b4a0"
+    # translator.network-slice.default.availability; default "99.9"
+    TRANSLATOR_NETWORK_SLICE_DEFAULT_AVAILABILITY: ~
+    # translator.network-slice.default.downlinkLatency; default "10"
+    TRANSLATOR_NETWORK_SLICE_DEFAULT_DOWNLINK_LATENCY: ~
+    # translator.network-slice.default.downlinkThroughput; default "1000"
+    TRANSLATOR_NETWORK_SLICE_DEFAULT_DOWNLINK_THROUGHPUT: ~
+    # translator.network-slice.default.jitter; default "10"
+    TRANSLATOR_NETWORK_SLICE_DEFAULT_JITTER: ~
+    # translator.network-slice.default.uplinkLatency; default "10"
+    TRANSLATOR_NETWORK_SLICE_DEFAULT_UPLINK_LATENCY: ~
+    # translator.network-slice.default.uplinkThroughput; default "100"
+    TRANSLATOR_NETWORK_SLICE_DEFAULT_UPLINK_THROUGHPUT: ~
+    # translator.network-slice.intend-default.availability; default "99.9"
+    TRANSLATOR_NETWORK_SLICE_INTEND_DEFAULT_AVAILABILITY: ~
+    # translator.network-slice.intend-default.downlinkLatency; default "10"
+    TRANSLATOR_NETWORK_SLICE_INTEND_DEFAULT_DOWNLINK_LATENCY: ~
+    # translator.network-slice.intend-default.downlinkThroughput; default "1000000"
+    TRANSLATOR_NETWORK_SLICE_INTEND_DEFAULT_DOWNLINK_THROUGHPUT: ~
+    # translator.network-slice.intend-default.jitter; default "10"
+    TRANSLATOR_NETWORK_SLICE_INTEND_DEFAULT_JITTER: ~
+    # translator.network-slice.intend-default.uplinkLatency; default "10"
+    TRANSLATOR_NETWORK_SLICE_INTEND_DEFAULT_UPLINK_LATENCY: ~
+    # translator.network-slice.intend-default.uplinkThroughput; default "100000"
+    TRANSLATOR_NETWORK_SLICE_INTEND_DEFAULT_UPLINK_THROUGHPUT: ~
+  translatorEnv:
+    # intent.agentic.allow-json-ld; default "true"
+    INTENT_AGENTIC_ALLOW_JSON_LD: ~
+    # intent.agentic.allow-turtle; default "true"
+    INTENT_AGENTIC_ALLOW_TURTLE: ~
+    # intent.agentic.clarification.mode; default "ask"
+    INTENT_AGENTIC_CLARIFICATION_MODE: "ask"
+    # intent.agentic.default-final-format; default "TURTLE"
+    INTENT_AGENTIC_DEFAULT_FINAL_FORMAT: "TURTLE"
+    # intent.agentic.enabled; default "true"
+    INTENT_AGENTIC_ENABLED: ~
+    # intent.agentic.agents.enabled; default empty
+    INTENT_AGENTIC_ENABLED_AGENTS: "NetworkExpectationAgent,DeploymentExpectationAgent"
+    # intent.agentic.fail-on-invalid-artifact; default "true"
+    INTENT_AGENTIC_FAIL_ON_INVALID_ARTIFACT: ~
+    # intent.agentic.max-agent-output-chars; default "16000"
+    INTENT_AGENTIC_MAX_AGENT_OUTPUT_CHARS: ~
+    # intent.agentic.max-final-artifact-chars; default "40000"
+    INTENT_AGENTIC_MAX_FINAL_ARTIFACT_CHARS: ~
+    # intent.agentic.max-iterations; default "3"
+    INTENT_AGENTIC_MAX_ITERATIONS: ~
+    # intent.agentic.ontology-check.namespaces; default "icm,log,quan,set,imo,nxw,data5g"
+    INTENT_AGENTIC_ONTOLOGY_CHECK_NAMESPACES: ~
+    # intent.agentic.prompts.external-dir (@Value); default empty
+    INTENT_AGENTIC_PROMPTS_EXTERNAL_DIR: ~
+    # intent.agentic.qdrant-context-enabled; default "false"
+    INTENT_AGENTIC_QDRANT_CONTEXT_ENABLED: ~
+    # intent.agentic.submit-on-confirm; default "true"
+    INTENT_AGENTIC_SUBMIT_ON_CONFIRM: "true"
+    # intent.agentic.token-logging.enabled; default "false"
+    INTENT_AGENTIC_TOKEN_LOGGING_ENABLED: "true"
+    # intent.agentic.v3.extraction-parallelism; default "3"
+    INTENT_AGENTIC_V3_EXTRACTION_PARALLELISM: ~
+    # intent.agentic.v3.max-questions-per-component; default "5"
+    INTENT_AGENTIC_V3_MAX_QUESTIONS_PER_COMPONENT: ~
+    # intent.agentic.v3.max-turn-seconds; default "300"
+    INTENT_AGENTIC_V3_MAX_TURN_SECONDS: ~
+    # intent.agentic.v3.per-component-timeout-seconds; default "120"
+    INTENT_AGENTIC_V3_PER_COMPONENT_TIMEOUT_SECONDS: ~
+    # intent.agentic.application-catalog.enabled; default "false"
+    INTENT_APPLICATION_CATALOG_ENABLED: ~
+    # intent.agentic.application-catalog.endpoint; default empty
+    INTENT_APPLICATION_CATALOG_ENDPOINT: ~
+    # intent.agentic.application-catalog.provider; default "soccer-mcp"
+    INTENT_APPLICATION_CATALOG_PROVIDER: ~
+    # intent.ontology.cache.ttl-seconds; default "300"
+    INTENT_ONTOLOGY_CACHE_TTL_SECONDS: ~
+    # intent.ontology.fuseki.connect-timeout-ms; default "3000"
+    INTENT_ONTOLOGY_CONNECT_TIMEOUT_MS: ~
+    # intent.ontology.context.max-metrics; default "12"
+    INTENT_ONTOLOGY_CONTEXT_MAX_METRICS: ~
+    # intent.ontology.context.max-operators; default "8"
+    INTENT_ONTOLOGY_CONTEXT_MAX_OPERATORS: ~
+    # intent.ontology.context.max-prompt-chars; default "12000"
+    INTENT_ONTOLOGY_CONTEXT_MAX_PROMPT_CHARS: ~
+    # intent.ontology.context.max-targets; default "8"
+    INTENT_ONTOLOGY_CONTEXT_MAX_TARGETS: ~
+    # intent.ontology.context.max-units; default "8"
+    INTENT_ONTOLOGY_CONTEXT_MAX_UNITS: ~
+    # intent.ontology.enabled; default "true"
+    INTENT_ONTOLOGY_ENABLED: "true"
+    # intent.ontology.fuseki.password; default empty
+    INTENT_ONTOLOGY_FUSEKI_PASSWORD: ~
+    # intent.ontology.fuseki.query-endpoint; default "http://fuseki:3030/intent/query"; chart: external.fuseki
+    INTENT_ONTOLOGY_FUSEKI_QUERY_ENDPOINT: ~
+    # intent.ontology.fuseki.username; default empty
+    INTENT_ONTOLOGY_FUSEKI_USERNAME: ~
+    # intent.semantic.profiles.tmf-nxw.graphs.common; default "https://ontology.nextworks.it/graphs/common/context/v1"
+    INTENT_ONTOLOGY_GRAPH_NXW_COMMON: ~
+    # intent.semantic.profiles.tmf-nxw.graphs.domain; default "https://nextworks.it/flecon/ontology/nextworks/domain/v1"
+    INTENT_ONTOLOGY_GRAPH_NXW_DOMAIN: ~
+    # intent.semantic.profiles.tmf-nxw.graphs.extraction-profile; default "https://nextworks.it/flecon/ontology/nextworks/extraction-profile/v1"
+    INTENT_ONTOLOGY_GRAPH_NXW_EXTRACTION_PROFILE: ~
+    # intent.semantic.profiles.tmf-nxw.graphs.intent-structure; default "https://nextworks.it/flecon/ontology/nextworks/intent-structure/v1"
+    INTENT_ONTOLOGY_GRAPH_NXW_INTENT_STRUCTURE: ~
+    # intent.semantic.profiles.tmf-nxw.graphs.specialist-vocabulary; default "https://nextworks.it/ontology/specialist-vocabulary/v1"
+    INTENT_ONTOLOGY_GRAPH_SPECIALIST_VOCABULARY: ~
+    # intent.semantic.profiles.tmf.graphs.tmforum-common; default "https://nextworks.it/flecon/ontology/tmforum/v3.6.0/IntentCommonModel"
+    INTENT_ONTOLOGY_GRAPH_TMFORUM_COMMON: ~
+    # intent.semantic.profiles.tmf.graphs.tmforum-logical; default "https://nextworks.it/flecon/ontology/tmforum/v3.6.0/LogicalOperators"
+    INTENT_ONTOLOGY_GRAPH_TMFORUM_LOGICAL: ~
+    # intent.semantic.profiles.tmf.graphs.tmforum-metrics; default "https://nextworks.it/flecon/ontology/tmforum/v3.6.0/MetricsAndObservations"
+    INTENT_ONTOLOGY_GRAPH_TMFORUM_METRICS: ~
+    # intent.semantic.profiles.tmf.graphs.tmforum-quantity; default "https://nextworks.it/flecon/ontology/tmforum/v3.6.0/QuantityOntology"
+    INTENT_ONTOLOGY_GRAPH_TMFORUM_QUANTITY: ~
+    # intent.semantic.profiles.tmf.graphs.tmforum-set; default "https://nextworks.it/flecon/ontology/tmforum/v3.6.0/SetOperators"
+    INTENT_ONTOLOGY_GRAPH_TMFORUM_SET: ~
+    # intent.ontology.fuseki.read-timeout-ms; default "10000"
+    INTENT_ONTOLOGY_READ_TIMEOUT_MS: ~
+    # intent.ontology.cache.refresh-on-startup; default "true"
+    INTENT_ONTOLOGY_REFRESH_ON_STARTUP: "true"
+    # intent.ontology.required; default "false"
+    INTENT_ONTOLOGY_REQUIRED: "false"
+    # intent.semantic.active-profile; default "tmf-nxw"
+    INTENT_SEMANTIC_PROFILE: ~
+    # set by the start script; default "http://localhost:8080/tmf-api/intentManagement/v5/intent"
+    INTENT_SUBMISSION_URL: "http://localhost:8080/tmf-api/intentManagement/v5/intent"
+    # intent.v2.ontology-assist.enabled; default "false"
+    INTENT_V2_ONTOLOGY_ASSIST_ENABLED: ~
+    # intent.v2.rag.enabled; default "false"
+    INTENT_V2_RAG_ENABLED: ~
+    # intent.v2.rag.include-fuseki-enrichment; default "true"
+    INTENT_V2_RAG_INCLUDE_FUSEKI_ENRICHMENT: ~
+    # intent.v2.rag.indexing.enabled; default "false"
+    INTENT_V2_RAG_INDEXING_ENABLED: ~
+    # intent.v2.rag.max-context-chars; default "12000"
+    INTENT_V2_RAG_MAX_CONTEXT_CHARS: ~
+    # intent.v2.rag.similarity-threshold; default "0.70"
+    INTENT_V2_RAG_SIMILARITY_THRESHOLD: ~
+    # intent.v2.rag.top-k; default "5"
+    INTENT_V2_RAG_TOP_K: ~
+    # start script: JVM options of the translator (INTERPRETER_JAVA_OPTS); default empty
+    JAVA_OPTS: ~
+    # openai.api.key; default empty; chart: Secret OPENAI_API_KEY
+    OPENAI_API_KEY: ~
+    # spring.ai.vectorstore.qdrant.collection-name; default "intent-knowledge"; chart: external.qdrant.collection
+    QDRANT_COLLECTION: ~
+    # spring.ai.vectorstore.qdrant.host; default "qdrant"; chart: external.qdrant.host
+    QDRANT_HOST: ~
+    # spring.ai.vectorstore.qdrant.port; default "6334"; chart: external.qdrant.grpcPort
+    QDRANT_PORT: ~
+    # spring.ai.openai.api-key; default "${OPENAI_API_KEY:${openai.api.key}}"; chart: Secret OPENAI_API_KEY
+    SPRING_AI_OPENAI_API_KEY: ~
+    # spring.ai.openai.chat.options.model; default "gpt-6-luna"
+    SPRING_AI_OPENAI_CHAT_MODEL: ~
+    # spring.ai.openai.chat.options.reasoning-effort; default "none"
+    SPRING_AI_OPENAI_CHAT_REASONING_EFFORT: ~
+    # tmf921.profile-resolution.enabled; default "true"
+    TMF921_PROFILE_RESOLUTION_ENABLED: "true"
+    # set by the start script; default "http://localhost:8080/tmf-api/intentManagement/v5/intentManagerProfile"
+    TMF921_PROFILE_URL: "http://localhost:8080/tmf-api/intentManagement/v5/intentManagerProfile"
+    # not read by the code (from compose); default none
+    TRANSLATOR_ENV: "production"
+  extraEnv: []
+  # More volumes for the intent-lcm pod and their mounts in the intent-lcm container (Kubernetes syntax). With
+  # mocks.clg.enabled the chart adds the application closed-loop profile itself (see "mocks").
+  extraVolumes: []
+  extraVolumeMounts: []
+
+operationManagement:
+  enabled: true
+  image:
+    repository: operation-management
+    tag: ""
+  replicas: 1
+  resources: {}
+  env:
+    # kafka.agent-timeouts.3GPP_NSMF (reply timeout of the NSMF agent); default none
+    KAFKA_AGENT_TIMEOUTS_3GPP_NSMF: "120000"
+    # spring.kafka.bootstrap-servers; default none; chart: external.kafka.bootstrapServers
+    KAFKA_BOOTSTRAP_SERVERS: ~
+    # kafka.agent-timeouts.SOCCER; default "900000"
+    KAFKA_SOCCER_TIMEOUT_MS: ~
+    # kafka.timeout (@Value); default "10000"
+    KAFKA_TIMEOUT: ~
+    # spring.kafka.group-id (@Value); default "operation-management"
+    SPRING_KAFKA_GROUP_ID: ~
+    # kafka.topics.response; default none; chart: topics.response
+    TASK_RESPONSE_TOPIC: ~
+    # kafka.topics.command; default none; chart: topics.task
+    TASK_TOPIC: ~
+  extraEnv: []
+
+gui:
+  enabled: true
+  image:
+    repository: intent-manager-gui
+    tag: ""
+  replicas: 1
+  resources: {}
+  env:
+    # env.js (not loaded by the image's index.html); default empty
+    BE_URL: ~
+    # nginx upstream; default "fuseki:3030"; chart: external.fuseki host (full name if it has no dot):port
+    FUSEKI_UPSTREAM: ~
+    # env.js (not loaded by the image's index.html); default empty
+    FUSEKI_URL: ~
+    # env.js (not loaded by the image's index.html); default empty
+    GRAPH_URI: "https://github.com/INTEND-Project/inNet/blob/main/doc/inNet-intent-instances.ttl"
+    # nginx upstream; default "intent-lcm-backend:8080"; chart: <namePrefix>-intent-lcm.<namespace>.svc.<clusterDomain>:8080
+    INTENT_LCM_UPSTREAM: ~
+    # nginx upstream; default "intent-translator:8080"; chart: <namePrefix>-intent-lcm.<namespace>.svc.<clusterDomain>:8082
+    INTENT_TRANSLATOR_UPSTREAM: ~
+    # env.js (not loaded by the image's index.html); default empty
+    INTERPRETER_URL: ~
+    # nginx upstream; default "operation-management:8080"; chart: <namePrefix>-operation-management.<namespace>.svc.<clusterDomain>:8080
+    OPERATION_MANAGEMENT_UPSTREAM: ~
+    # env.js (not loaded by the image's index.html); default "/operation-management"; chart: /operation-management
+    OPERATION_MANAGER_URL: ~
+  extraEnv: []
+  # The GUI image's nginx template has "resolver 127.0.0.11" (the Docker DNS), which does not exist on
+  # Kubernetes, so the proxies to intent-lcm and Fuseki would fail. An init container copies the image's
+  # template and replaces only that line: "auto" = the pod's DNS server (/etc/resolv.conf), an IP = that
+  # server, "" = keep the image's template unchanged (e.g. once the image makes the resolver configurable).
+  nginxResolver: auto
+
+# Agents (plugins/*): choose which ones are deployed with "enabled".
+agents:
+  nsmf:                             # plugins/3gpp-nsmf-agent (compose service nsmf-plugin)
+    enabled: true
+    image:
+      repository: 3gpp-nsmf-agent
+      tag: ""
+    resources: {}
+    env:
+      # agent.nsmf.terminate-ready-poll-seconds (@Value); default "5"
+      AGENT_NSMF_TERMINATE_READY_POLL_SECONDS: ~
+      # agent.nsmf.terminate-ready-timeout-seconds (@Value); default "180"
+      AGENT_NSMF_TERMINATE_READY_TIMEOUT_SECONDS: ~
+      # spring.kafka.bootstrap-servers; default none; chart: external.kafka.bootstrapServers
+      KAFKA_BOOTSTRAP_SERVERS: ~
+      # agent.nsmf.base-url; default "http://nsmf:8080"; chart: external.nsmf.baseUrl
+      NSMF_BASE_URL: ~
+      # agent.nsmf.catalogue-path; default "/ns/catalogue/nstemplate"
+      NSMF_CATALOGUE_PATH: "/ns/catalogue/nstemplate"
+      # agent.nsmf.create-nsi-path; default "/vs/basic/nslcm/ns/nst"
+      NSMF_CREATE_NSI_PATH: "/vs/basic/nslcm/ns/nst"
+      # agent.nsmf.instantiate-path-template; default "/vs/basic/nslcm/ns/%s/action/instantiate"
+      NSMF_INSTANTIATE_TEMPLATE: "/vs/basic/nslcm/ns/%s/action/instantiate"
+      # agent.nsmf.ns-list-path; default "/vs/basic/nslcm/ns"
+      NSMF_NS_LIST_PATH: ~
+      # agent.nsmf.terminate-path-template; default "/vs/basic/nslcm/ns/%s/action/terminate"
+      NSMF_TERMINATE_TEMPLATE: "/vs/basic/nslcm/ns/%s/action/terminate"
+      # agent.sleep; default none
+      SLEEP: "5"
+      # spring.kafka.group-id (@Value); default "operation-management"
+      SPRING_KAFKA_GROUP_ID: ~
+      # kafka.topics.response; default none; chart: topics.response
+      TASK_RESPONSE_TOPIC: ~
+      # kafka.topics.command; default none; chart: topics.task
+      TASK_TOPIC: ~
+    extraEnv: []
+  soccer:                           # plugins/soccer-agent
+    enabled: true
+    image:
+      repository: soccer-agent
+      tag: ""
+    resources: {}
+    env:
+      # spring.kafka.bootstrap-servers; default none; chart: external.kafka.bootstrapServers
+      KAFKA_BOOTSTRAP_SERVERS: ~
+      # agent.workers; default "4"
+      SOCCER_AGENT_WORKERS: ~
+      # soccer.base-url; default "http://soccer-mock:9090"; chart: external.soccer.baseUrl
+      SOCCER_BASE_URL: ~
+      # soccer.catalogue-base-url; default empty
+      SOCCER_CATALOGUE_BASE_URL: ~
+      # soccer.delete-service-instance-after-terminate; default "true"
+      SOCCER_DELETE_SERVICE_INSTANCE_AFTER_TERMINATE: "false"
+      # soccer.instantiate-timeout-seconds; default "600"
+      SOCCER_INSTANTIATE_TIMEOUT_SECONDS: ~
+      # soccer.poll-interval-seconds; default "5"
+      SOCCER_POLL_INTERVAL_SECONDS: ~
+      # soccer.tenant-id; default empty; chart: external.soccer.tenantId
+      SOCCER_TENANT_ID: ~
+      # kafka.topics.response; default none; chart: topics.response
+      TASK_RESPONSE_TOPIC: ~
+      # kafka.topics.command; default none; chart: topics.task
+      TASK_TOPIC: ~
+    extraEnv: []
+
+# Loads the intent ontologies into Fuseki (compose fuseki-intent-dataset-init). Runs as the last init container
+# of intent-lcm, so the LCM starts only after it succeeded, as in compose. The loader is idempotent (creates the
+# dataset if missing, replaces each graph), so it also runs safely on every intent-lcm restart.
+ontologyInit:
+  enabled: true
+  image:
+    repository: ontology-init
+    tag: ""
+  env:
+    # loader; default "admin"; chart: Secret FUSEKI_ADMIN_PASSWORD
+    FUSEKI_ADMIN_PASSWORD: ~
+    # loader; default "http://fuseki:3030"; chart: external.fuseki
+    FUSEKI_BASE_URL: ~
+    # loader; default "intent"; chart: external.fuseki.dataset
+    FUSEKI_DATASET: ~
+    # loader; default "admin"; chart: external.fuseki.username
+    FUSEKI_USERNAME: ~
+    # loader; default "/ontology"
+    ONTOLOGY_BASE_DIR: ~
+
+# Loads the RAG corpus into Qdrant through the translator (compose qdrant-rag-bootstrap, profile rag-bootstrap,
+# off by default as in compose). Image knowledge-graph-bootstrap (the repository name; the compose service keeps the
+# old name). Helm hook Job, run after every
+# install/upgrade while enabled; it waits itself for Qdrant and the translator (WAIT_TIMEOUT_SECONDS).
+knowledgeGraphBootstrap:
+  enabled: false
+  image:
+    repository: knowledge-graph-bootstrap
+    tag: ""
+  backoffLimit: 3
+  env:
+    # load-corpus.sh; default "/app/corpus/intent-knowledge-v2.json"
+    CORPUS_PATH: "/app/corpus/intent-knowledge-v2.json"
+    # load-corpus.sh; default "http://intent-translator:8080"; chart: http://<namePrefix>-intent-lcm:8082
+    INTENT_INTERPRETER_BASE_URL: ~
+    # load-corpus.sh; default "http://qdrant:6333"; chart: external.qdrant (HTTP)
+    QDRANT_BASE_URL: ~
+    # load-corpus.sh; default "/collections"
+    QDRANT_READY_ENDPOINT: "/collections"
+    # load-corpus.sh; default "/v2/rag/index"
+    RAG_INDEX_ENDPOINT: "/v2/rag/index"
+    # load-corpus.sh; default "3"
+    WAIT_SLEEP_SECONDS: "3"
+    # load-corpus.sh; default "180"
+    WAIT_TIMEOUT_SECONDS: "180"
+
+# Mocks of the systems InNet and InOrch drive, the images of intend/docker-compose-v3-mock.yaml. Off by default; the
+# profile values-innet-inorch-mocks.yaml turns all three on and points external.* and the agents at them:
+# - nsmf-mock: the NSMF for slices (InNet), through 3gpp-nsmf-agent;
+# - soccer-mock: SOCCER for deployments (InOrch), through soccer-agent;
+# - clg-mock: the closed-loop governance (both), through intent-lcm (cl-governance.driver rest).
+# Each gets a Deployment and a Service of the same name (no prefix). State is in memory: a pod restart forgets everything.
+mocks:
+  nsmf:                             # ../nsmf-mock; already knows nst-ec21-001, so no onboarding is needed
+    enabled: false
+    image:
+      repository: nsmf-mock
+      tag: intend-munich-2026
+    port: 9091
+    resources: {}
+    env:
+      # the catalogue in the real NSMF format, {"nst": {...}}, as 3gpp-nsmf-agent reads it (compose v3-mock)
+      NST_CATALOGUE_FORMAT: "nst-info"
+  soccer:                           # ../soccer-mock; accepts descriptors aaaaaaaa-..., bbbbbbbb-... and EXTRA_DESCRIPTOR_IDS
+    enabled: false
+    image:
+      repository: soccer-mock
+      tag: intend-munich-2026
+    port: 9090
+    resources: {}
+    env:
+      # the vLLM suite descriptor (compose v3-mock SOCCER_MOCK_DESCRIPTOR_IDS)
+      EXTRA_DESCRIPTOR_IDS: "c6fbdc7d-66a7-4521-afb8-5470c4e4b6d8"
+  clg:                              # ../clg-mock; closed-loop lifecycle, events, a fake Kubernetes API for pod logs
+    enabled: false
+    image:
+      repository: clg-mock
+      tag: intend-munich-2026
+    port: 8080
+    resources: {}
+    env:
+      # emulated 5G and vLLM closed loops (compose v3-mock); see the clg-mock README for every SIM_* variable
+      SIM_ENABLED: "true"
+      SIM_OBSERVATION_SECONDS: "15"
+      SIM_5G_DECISION_SECONDS: "30"
+      SIM_VLLM_POLL_SECONDS: "5"
+    # The application closed loop the deployment translator provisions on clg-mock (InOrch): ConfigMap
+    # clg-mock-application-profile, mounted in intent-lcm at /app/mock/application-closed-loop-profile.json. Same
+    # content as intend/runtime/mock/application-closed-loop-profile.json. {} = no ConfigMap.
+    applicationClosedLoopProfile:
+      closedLoopDescriptorId: "1035f45d-0cfc-4511-bdb6-b108fa59319b"
+      configParams:
+        a991ca71-0000-4000-8000-0000000000f1.target: "clg-mock"
+      objectives:
+        compute_latency:
+          param: "a991ca71-0000-4000-8000-0000000000f1.computeLatencySetpoint"

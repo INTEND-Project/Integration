@@ -1,0 +1,271 @@
+{{- /*
+Data services deployed with the Intent Manager (compose v3: intent-manager-postgres, fuseki, qdrant,
+zookeeper, kafka). Same images and settings as compose. Each can be turned off with <name>.enabled=false to
+use an existing one through external.* instead. Names are the compose ones, without global.namePrefix (which
+applies to the application components only); an empty external.<x>.host means the Service deployed here. PostgreSQL, Fuseki and Qdrant keep their data in a PVC (kept on helm uninstall);
+Kafka and ZooKeeper have no volume, as in compose.
+*/}}
+{{- $root := . }}
+
+{{- with .Values.postgres }}
+{{- if .enabled }}
+{{- $env := dict
+  "POSTGRES_DB" $root.Values.external.postgres.database
+  "POSTGRES_USER" $root.Values.external.postgres.username
+  "POSTGRES_PASSWORD" (dict "secret" "POSTGRES_PASSWORD")
+}}
+{{- $_ := include "im.overlay" (dict "dst" $env "src" .env) }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: intent-manager-postgres
+  labels:
+    {{- include "im.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: intent-manager-postgres
+spec:
+  serviceName: intent-manager-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "im.selector" (dict "name" "intent-manager-postgres" "root" $root) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "im.labels" $root | nindent 8 }}
+        app.kubernetes.io/name: intent-manager-postgres
+    spec:
+      {{- include "im.podCommon" $root | nindent 6 }}
+      containers:
+        - name: postgres
+          image: {{ .image }}
+          imagePullPolicy: {{ $root.Values.global.imagePullPolicy }}
+          ports:
+            - {name: postgres, containerPort: 5432}
+          env:
+            {{- include "im.envList" (dict "root" $root "env" $env) | nindent 12 }}
+          # compose healthcheck: pg_isready every 5 s
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            periodSeconds: 5
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/postgresql/data}
+          {{- with .resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+  volumeClaimTemplates:
+    {{- include "im.pvc" (dict "name" "data" "storage" .storage) | nindent 4 }}
+---
+{{ include "im.service" (dict "root" $root "name" "intent-manager-postgres" "component" "intent-manager-postgres" "ports" (list (dict "name" "postgres" "port" 5432))) }}
+{{- end }}
+{{- end }}
+
+{{- with .Values.fuseki }}
+{{- if .enabled }}
+{{- $env := dict "ADMIN_PASSWORD" (dict "secret" "FUSEKI_ADMIN_PASSWORD") }}
+{{- $_ := include "im.overlay" (dict "dst" $env "src" .env) }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: fuseki
+  labels:
+    {{- include "im.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: fuseki
+spec:
+  serviceName: fuseki
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "im.selector" (dict "name" "fuseki" "root" $root) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "im.labels" $root | nindent 8 }}
+        app.kubernetes.io/name: fuseki
+    spec:
+      {{- include "im.podCommon" $root | nindent 6 }}
+      containers:
+        - name: fuseki
+          image: {{ .image }}
+          imagePullPolicy: {{ $root.Values.global.imagePullPolicy }}
+          ports:
+            - {name: http, containerPort: 3030}
+          env:
+            {{- include "im.envList" (dict "root" $root "env" $env) | nindent 12 }}
+          readinessProbe:
+            httpGet: {path: /$/ping, port: 3030}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /$/ping, port: 3030}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          volumeMounts:
+            - {name: data, mountPath: /fuseki}
+          {{- with .resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+  volumeClaimTemplates:
+    {{- include "im.pvc" (dict "name" "data" "storage" .storage) | nindent 4 }}
+---
+{{ include "im.service" (dict "root" $root "name" "fuseki" "component" "fuseki" "ports" (list (dict "name" "http" "port" 3030))) }}
+{{- end }}
+{{- end }}
+
+{{- with .Values.qdrant }}
+{{- if .enabled }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: qdrant
+  labels:
+    {{- include "im.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: qdrant
+spec:
+  serviceName: qdrant
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "im.selector" (dict "name" "qdrant" "root" $root) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "im.labels" $root | nindent 8 }}
+        app.kubernetes.io/name: qdrant
+    spec:
+      {{- include "im.podCommon" $root | nindent 6 }}
+      containers:
+        - name: qdrant
+          image: {{ .image }}
+          imagePullPolicy: {{ $root.Values.global.imagePullPolicy }}
+          ports:
+            - {name: http, containerPort: 6333}
+            - {name: grpc, containerPort: 6334}
+          {{- $env := dict }}
+          {{- $_ := include "im.overlay" (dict "dst" $env "src" .env) }}
+          {{- with $env }}
+          env:
+            {{- include "im.envList" (dict "root" $root "env" .) | nindent 12 }}
+          {{- end }}
+          readinessProbe:
+            httpGet: {path: /readyz, port: 6333}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /livez, port: 6333}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          volumeMounts:
+            - {name: data, mountPath: /qdrant/storage}
+          {{- with .resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+  volumeClaimTemplates:
+    {{- include "im.pvc" (dict "name" "data" "storage" .storage) | nindent 4 }}
+---
+{{ include "im.service" (dict "root" $root "name" "qdrant" "component" "qdrant" "ports" (list (dict "name" "http" "port" 6333) (dict "name" "grpc" "port" 6334))) }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.kafka.enabled }}
+{{- with .Values.kafka.zookeeper }}
+{{- $env := dict }}
+{{- $_ := include "im.overlay" (dict "dst" $env "src" .env) }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zookeeper
+  labels:
+    {{- include "im.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: zookeeper
+spec:
+  serviceName: zookeeper
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "im.selector" (dict "name" "zookeeper" "root" $root) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "im.labels" $root | nindent 8 }}
+        app.kubernetes.io/name: zookeeper
+    spec:
+      {{- include "im.podCommon" $root | nindent 6 }}
+      containers:
+        - name: zookeeper
+          image: {{ .image }}
+          imagePullPolicy: {{ $root.Values.global.imagePullPolicy }}
+          ports:
+            - {name: client, containerPort: 2181}
+          env:
+            {{- include "im.envList" (dict "root" $root "env" $env) | nindent 12 }}
+          readinessProbe:
+            tcpSocket: {port: 2181}
+            periodSeconds: 10
+          {{- with .resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+---
+{{ include "im.service" (dict "root" $root "name" "zookeeper" "component" "zookeeper" "ports" (list (dict "name" "client" "port" 2181))) }}
+{{- end }}
+{{- with .Values.kafka }}
+{{- $env := dict
+  "KAFKA_ADVERTISED_LISTENERS" (printf "INSIDE://%s:9092" "kafka")
+  "KAFKA_ZOOKEEPER_CONNECT" (printf "%s:2181" "zookeeper")
+}}
+{{- $_ := include "im.overlay" (dict "dst" $env "src" .env) }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  labels:
+    {{- include "im.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: kafka
+spec:
+  serviceName: kafka
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "im.selector" (dict "name" "kafka" "root" $root) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "im.labels" $root | nindent 8 }}
+        app.kubernetes.io/name: kafka
+    spec:
+      {{- include "im.podCommon" $root | nindent 6 }}
+      initContainers:
+        {{- include "im.waitFor" (dict "root" $root "targets" (list (printf "%s:2181" "zookeeper"))) | nindent 8 }}
+      containers:
+        - name: kafka
+          image: {{ .image }}
+          imagePullPolicy: {{ $root.Values.global.imagePullPolicy }}
+          ports:
+            - {name: kafka, containerPort: 9092}
+          env:
+            {{- include "im.envList" (dict "root" $root "env" $env) | nindent 12 }}
+          readinessProbe:
+            tcpSocket: {port: 9092}
+            periodSeconds: 10
+          {{- with .resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+---
+{{ include "im.service" (dict "root" $root "name" "kafka" "component" "kafka" "ports" (list (dict "name" "kafka" "port" 9092))) }}
+{{- end }}
+{{- end }}

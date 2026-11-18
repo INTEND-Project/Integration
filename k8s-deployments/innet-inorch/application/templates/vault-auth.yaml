@@ -1,0 +1,12 @@
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: vault-auth  
+spec:
+  vaultConnectionRef: vault/default
+  method: kubernetes
+  mount: kubernetes
+  kubernetes:
+    role: vso-generic
+    serviceAccount: default
+    tokenExpirationSeconds: 600

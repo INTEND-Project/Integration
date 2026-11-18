@@ -1,0 +1,137 @@
+{{- if .Values.intentLcm.enabled }}
+{{- $c := .Values.intentLcm }}
+{{- $mockProfile := and .Values.mocks.clg.enabled .Values.mocks.clg.applicationClosedLoopProfile }}
+{{- $e := .Values.external }}
+{{- $fuseki := include "im.fusekiUrl" . }}
+{{- $ds := printf "%s/%s" $fuseki $e.fuseki.dataset }}
+{{- $lcm := include "im.name" (dict "root" . "name" "intent-lcm") }}
+{{- $om := include "im.name" (dict "root" . "name" "operation-management") }}
+{{- $profileCm := "clg-mock-application-profile" }}
+{{- /* values computed by the chart; intentLcm.env / intentLcm.translatorEnv override them */}}
+{{- $env := dict
+  "CL_GOVERNANCE_URL" (include "im.systemUrl" (dict "root" . "key" "external.clg.governanceUrl" "url" $e.clg.governanceUrl "mock" .Values.mocks.clg "name" "clg-mock" "path" "/api/v1/"))
+  "SPARQL_USER" $e.fuseki.username
+  "SPARQL_PASSWORD" (dict "secret" "FUSEKI_ADMIN_PASSWORD")
+  "SPARQL_ENDPOINT" (printf "%s/" $ds)
+  "SPARQL_DATA_ENDPOINT" (printf "%s/data" $ds)
+  "SPARQL_UPDATE_ENDPOINT" (printf "%s/update" $ds)
+  "OPERATION_MANAGEMENT_URL" (printf "http://%s:8080" $om)
+  "OPERATION_MANAGEMENT_NOTIFICATION_URL" (printf "http://%s:8080/api/notifications" $lcm)
+  "INSTANCE_PREFIX" (printf "http://%s:8080/tmf-api/intentManagement/v5/intent/" $lcm)
+  "INTERPRETER_OPENAI_API_KEY" (dict "secret" "OPENAI_API_KEY")
+  "INTERPRETER_SPRING_AI_OPENAI_API_KEY" (dict "secret" "OPENAI_API_KEY")
+  "INTERPRETER_SPRING_DATASOURCE_URL" (printf "jdbc:postgresql://%s:%v/%s" (include "im.postgresHost" .) $e.postgres.port $e.postgres.database)
+  "INTERPRETER_SPRING_DATASOURCE_USERNAME" $e.postgres.username
+  "INTERPRETER_SPRING_DATASOURCE_PASSWORD" (dict "secret" "POSTGRES_PASSWORD")
+  "INTERPRETER_QDRANT_HOST" (include "im.qdrantHost" .)
+  "INTERPRETER_QDRANT_PORT" (toString $e.qdrant.grpcPort)
+  "INTERPRETER_QDRANT_COLLECTION" $e.qdrant.collection
+  "INTERPRETER_INTENT_ONTOLOGY_FUSEKI_QUERY_ENDPOINT" (printf "%s/query" $ds)
+}}
+{{- $_ := include "im.overlay" (dict "dst" $env "src" $c.env) }}
+{{- $_ = include "im.overlay" (dict "dst" $env "src" $c.translatorEnv "prefix" "INTERPRETER_") }}
+{{- $initEnv := dict
+  "FUSEKI_BASE_URL" $fuseki
+  "FUSEKI_DATASET" $e.fuseki.dataset
+  "FUSEKI_USERNAME" $e.fuseki.username
+  "FUSEKI_ADMIN_PASSWORD" (dict "secret" "FUSEKI_ADMIN_PASSWORD")
+}}
+{{- $_ = include "im.overlay" (dict "dst" $initEnv "src" .Values.ontologyInit.env) }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $lcm }}
+  labels:
+    {{- include "im.labels" . | nindent 4 }}
+    app.kubernetes.io/name: intent-lcm
+spec:
+  replicas: {{ $c.replicas }}
+  selector:
+    matchLabels:
+      {{- include "im.selector" (dict "name" "intent-lcm" "root" .) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "im.labels" . | nindent 8 }}
+        app.kubernetes.io/name: intent-lcm
+    spec:
+      {{- include "im.podCommon" . | nindent 6 }}
+      initContainers:
+        {{- $targets := list (printf "%s:%v" (include "im.postgresHost" .) $e.postgres.port) (printf "%s:%v" (include "im.qdrantHost" .) $e.qdrant.grpcPort) (printf "%s:%v" (include "im.fusekiHost" .) $e.fuseki.port) }}
+        {{- if .Values.operationManagement.enabled }}
+        {{- $targets = append $targets (printf "%s:8080" $om) }}
+        {{- end }}
+        {{- include "im.waitFor" (dict "root" . "targets" $targets) | nindent 8 }}
+        {{- if .Values.ontologyInit.enabled }}
+        - name: ontology-init                  # image CMD: sh /ontology/scripts/load-intent-ontologies-to-fuseki.sh
+          image: {{ include "im.image" (dict "root" . "image" .Values.ontologyInit.image) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          env:
+            {{- include "im.envList" (dict "root" . "env" $initEnv) | nindent 12 }}
+        {{- end }}
+      containers:
+        - name: intent-lcm
+          image: {{ include "im.image" (dict "root" . "image" $c.image) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - {name: lcm, containerPort: 8080}
+            - {name: translator, containerPort: 8082}
+          env:
+            {{- include "im.envList" (dict "root" . "env" $env) | nindent 12 }}
+            {{- with $c.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          # compose healthcheck: both JVMs answer (start_period 60s, 20 retries every 10s)
+          startupProbe:
+            httpGet: {path: /tmf-api/intentManagement/v5/intent, port: 8080}
+            periodSeconds: 10
+            failureThreshold: 26
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "wget -q -O /dev/null http://localhost:8080/tmf-api/intentManagement/v5/intent && wget -q -O /dev/null http://localhost:8082/home"]
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet: {path: /tmf-api/intentManagement/v5/intent, port: 8080}
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          {{- with $c.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if or $mockProfile $c.extraVolumeMounts }}
+          volumeMounts:
+            {{- if $mockProfile }}
+            - {name: clg-mock-application-profile, mountPath: /app/mock, readOnly: true}
+            {{- end }}
+            {{- with $c.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+      {{- if or $mockProfile $c.extraVolumes }}
+      volumes:
+        {{- if $mockProfile }}
+        - name: clg-mock-application-profile
+          configMap: {name: {{ $profileCm }}}
+        {{- end }}
+        {{- with $c.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- /* one Service, LCM and translator: the chart passes its name to every component that calls them */}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $lcm }}
+  labels:
+    {{- include "im.labels" . | nindent 4 }}
+    app.kubernetes.io/name: intent-lcm
+spec:
+  selector:
+    {{- include "im.selector" (dict "name" "intent-lcm" "root" .) | nindent 4 }}
+  ports:
+    - {name: lcm, port: 8080, targetPort: 8080}
+    - {name: translator, port: 8082, targetPort: 8082}
+{{- end }}
