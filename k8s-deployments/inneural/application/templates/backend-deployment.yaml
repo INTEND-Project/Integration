@@ -27,7 +27,7 @@ spec:
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "inneural.fullname" . }}-backend
+                  name: {{ .Release.Name }}-backend
                   key: OPENAI_API_KEY
 
             - name: OPENAI_MODEL
@@ -43,4 +43,4 @@ spec:
       volumes:
         - name: inneural-cache
           persistentVolumeClaim:
-            claimName: {{ include "inneural.fullname" . }}-cache
+            claimName: {{ .Release.Name }}-cache

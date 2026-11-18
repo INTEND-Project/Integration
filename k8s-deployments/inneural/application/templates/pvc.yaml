@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "inneural.fullname" . }}-cache
+  name: {{ .Release.Name }}-cache
 spec:
   accessModes:
     - ReadWriteOnce

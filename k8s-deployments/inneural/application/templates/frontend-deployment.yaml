@@ -31,4 +31,4 @@ spec:
       volumes:
         - name: nginx-config
           configMap:
-            name: {{ include "inneural.fullname" . }}-nginx
+            name: {{ .Release.Name }}-nginx
