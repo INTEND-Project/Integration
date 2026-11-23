@@ -1,0 +1,94 @@
+{{- include "insustain.validate" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: insustain-backend
+  labels:
+    app: insustain-backend
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      app: insustain-backend
+  template:
+    metadata:
+      labels:
+        app: insustain-backend
+    spec:
+      serviceAccountName: {{ include "insustain.serviceAccountName" . | quote }}
+      {{- include "insustain.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}@{{ include "insustain.backendImage" . }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8089
+          env:
+            - name: MONGO_URL
+              value: {{ .Values.backend.mongo.url | quote }}
+            - name: MONGO_DB
+              value: {{ .Values.backend.mongo.database | quote }}
+            - name: MONGO_AUTH_SOURCE
+              value: {{ .Values.backend.mongo.authSource | quote }}
+            - name: MONGO_AUTH_MECHANISM
+              value: {{ .Values.backend.mongo.authMechanism | quote }}
+            - name: MONGO_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.backend.mongo.usernameSecret.name | quote }}
+                  key: {{ .Values.backend.mongo.usernameSecret.key | quote }}
+            - name: MONGO_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.backend.mongo.passwordSecret.name | quote }}
+                  key: {{ .Values.backend.mongo.passwordSecret.key | quote }}
+            - name: PROMETHEUS_URL
+              value: {{ .Values.backend.prometheusUrl | quote }}
+            - name: MLFLOW_URL
+              value: {{ .Values.backend.mlflowUrl | quote }}
+            - name: NAMESPACE_NAME
+              value: {{ default .Release.Namespace .Values.backend.namespaceName | quote }}
+            - name: LABEL_SELECTOR
+              value: {{ .Values.backend.podLabelSelector | quote }}
+            - name: ENABLE_TRAINING_SCHEDULER
+              value: "false"
+            {{- if .Values.backend.graphdb.enabled }}
+            - name: GRAPHDB_URL
+              value: {{ required "backend.graphdb.url is required when enabled" .Values.backend.graphdb.url | quote }}
+            - name: GRAPHDB_REPOSITORY
+              value: {{ .Values.backend.graphdb.repository | quote }}
+            {{- if .Values.backend.graphdb.graph }}
+            - name: GRAPHDB_GRAPH
+              value: {{ .Values.backend.graphdb.graph | quote }}
+            {{- end }}
+            {{- end }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: insustain-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: insustain-backend
+  ports:
+    - name: http
+      port: {{ .Values.backend.service.port }}
+      targetPort: http

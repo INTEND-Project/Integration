@@ -1,0 +1,66 @@
+# Set these image digests from the successful protected-tag GitLab publish job.
+# Example: ghcr.io/intend-project/insustain-backend@sha256:<digest>
+imagePullSecrets:
+  name: ""
+
+serviceAccount:
+  # Empty derives the managed account name; required when rbac.create=false.
+  name: ""
+
+rbac:
+  create: true
+  # false grants pod discovery only in the release namespace. Set true only
+  # after the Integration administrator approves cross-namespace discovery.
+  clusterWide: false
+  # Additional namespaces for pod discovery. These must already exist.
+  targetNamespaces: []
+
+backend:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/intend-project/insustain-backend
+    digest: sha256:a3573f585834c7be5d184cf2ac7523ae7b38f2c253377f9a59a60f141541cde4
+  service:
+    port: 8089
+  prometheusUrl: http://monitoring-stack-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+  namespaceName: ""
+  podLabelSelector: app
+  # MLflow is not part of this initial Integration deployment. The ML-specific
+  # UI/API actions remain unavailable until the administrator supplies a service.
+  mlflowUrl: http://127.0.0.1:5000
+  graphdb:
+    enabled: false
+    url: ""
+    repository: intents_and_intent_reports
+    graph: ""
+  mongo:
+    url: mongodb.mongodb.svc.cluster.local:27017
+    database: insustain
+    authSource: insustain
+    authMechanism: ""
+    usernameSecret:
+      name: insustain-mongodb-auth
+      key: username
+    passwordSecret:
+      name: insustain-mongodb-auth
+      key: password
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/intend-project/insustain-frontend
+    digest: sha256:69afe73c3d0b9f57e075d10e529e0a0fa66b4e30f860d145eeb2aa11cb345f67
+  service:
+    port: 3000
+  # Empty derives the backend Service URL and configured Service port.
+  backendUrl: ""
+
+# No public hostname is assumed here. The Integration administrator can add
+# the cluster's approved Ingress/hostname after coordinating access controls.
+ingress:
+  enabled: false
+  className: traefik
+  host: ""
+  tlsSecretName: ""
+  # Empty omits cert-manager integration (for externally managed TLS).
+  clusterIssuer: ""
