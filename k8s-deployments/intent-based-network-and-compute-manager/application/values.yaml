@@ -33,12 +33,12 @@ global:
 # one only to use a service deployed elsewhere.
 external:
   postgres:
-    host: ""                        # "" = intent-manager-postgres (deployed here)
+    host: "postgres.postgres.svc.cluster.local"                        # "" = intent-manager-postgres (deployed here)
     port: 5432
     database: json_intents_v2
     username: innet              # password: secrets.postgresPassword
   fuseki:
-    host: ""                        # "" = fuseki (deployed here)
+    host: "fuseki.fuseki.svc.cluster.local"                        # "" = fuseki (deployed here)
     port: 3030
     dataset: intent
     username: admin                 # password: secrets.fusekiAdminPassword
@@ -77,7 +77,7 @@ secrets:
 # existing service instead, and point external.* to it. PVCs are kept on helm uninstall (delete them by hand).
 # storageClass "" = the cluster default.
 postgres:                           # Service intent-manager-postgres
-  enabled: true
+  enabled: false
   image: postgres:16.14@sha256:4eb532412200f7fbbf15d62ee0d96e020a9eae9eaed76066692474a7371c4d83
   storage: {size: 2Gi, storageClass: ""}
   resources: {}
@@ -87,7 +87,7 @@ postgres:                           # Service intent-manager-postgres
     PGDATA: /var/lib/postgresql/data/pgdata
 
 fuseki:                             # Service fuseki
-  enabled: true
+  enabled: false
   image: stain/jena-fuseki:5.1.0@sha256:b1d0c96f19adddef417520184471ac816cf36c6e72936a88ea02b29f4305929a
   storage: {size: 2Gi, storageClass: ""}
   resources: {}
