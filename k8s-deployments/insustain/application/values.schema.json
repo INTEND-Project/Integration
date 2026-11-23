@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["backend", "frontend", "rbac", "serviceAccount", "ingress", "imagePullSecrets"],
+  "definitions": {
+    "image": {
+      "type": "object",
+      "required": ["repository", "digest"],
+      "properties": {
+        "repository": {"type": "string", "minLength": 1, "pattern": "^[^\\s@:]+(/[^\\s@:]+)+$"},
+        "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "service": {
+      "type": "object",
+      "required": ["port"],
+      "properties": {"port": {"type": "integer", "minimum": 1, "maximum": 65535}}
+    },
+    "secretRef": {
+      "type": "object",
+      "required": ["name", "key"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "key": {"type": "string", "minLength": 1}
+      }
+    }
+  },
+  "properties": {
+    "imagePullSecrets": {
+      "type": "object", "required": ["name"],
+      "properties": {"name": {"type": "string"}}
+    },
+    "serviceAccount": {
+      "type": "object", "required": ["name"],
+      "properties": {"name": {"type": "string"}}
+    },
+    "rbac": {
+      "type": "object", "required": ["create", "clusterWide", "targetNamespaces"],
+      "properties": {
+        "create": {"type": "boolean"},
+        "clusterWide": {"type": "boolean"},
+        "targetNamespaces": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "maxLength": 63, "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"}
+        }
+      }
+    },
+    "backend": {
+      "type": "object",
+      "required": ["image", "service", "replicaCount", "prometheusUrl", "mongo", "graphdb", "mlflowUrl"],
+      "properties": {
+        "image": {"$ref": "#/definitions/image"},
+        "service": {"$ref": "#/definitions/service"},
+        "replicaCount": {"type": "integer", "minimum": 0},
+        "prometheusUrl": {"type": "string", "pattern": "^https?://[^\\s]+$"},
+        "mlflowUrl": {"type": "string", "pattern": "^https?://[^\\s]+$"},
+        "namespaceName": {"type": "string"},
+        "podLabelSelector": {"type": "string"},
+        "mongo": {
+          "type": "object", "required": ["url", "database", "authSource", "usernameSecret", "passwordSecret"],
+          "properties": {
+            "url": {"type": "string", "minLength": 1},
+            "database": {"type": "string", "minLength": 1},
+            "authSource": {"type": "string", "minLength": 1},
+            "authMechanism": {"type": "string"},
+            "usernameSecret": {"$ref": "#/definitions/secretRef"},
+            "passwordSecret": {"$ref": "#/definitions/secretRef"}
+          }
+        },
+        "graphdb": {
+          "type": "object", "required": ["enabled", "url", "repository", "graph"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "url": {"type": "string"},
+            "repository": {"type": "string", "minLength": 1},
+            "graph": {"type": "string"}
+          },
+          "if": {"properties": {"enabled": {"const": true}}},
+          "then": {"properties": {"url": {"pattern": "^https?://[^\\s]+$"}}}
+        }
+      }
+    },
+    "frontend": {
+      "type": "object", "required": ["image", "service", "replicaCount", "backendUrl"],
+      "properties": {
+        "image": {"$ref": "#/definitions/image"},
+        "service": {"$ref": "#/definitions/service"},
+        "replicaCount": {"type": "integer", "minimum": 0},
+        "backendUrl": {"type": "string", "pattern": "^(|https?://[^\\s]+)$"}
+      }
+    },
+    "ingress": {
+      "type": "object", "required": ["enabled", "host", "className", "tlsSecretName", "clusterIssuer"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "host": {"type": "string"},
+        "className": {"type": "string", "minLength": 1},
+        "tlsSecretName": {"type": "string"},
+        "clusterIssuer": {"type": "string"}
+      },
+      "if": {"properties": {"enabled": {"const": true}}},
+      "then": {"properties": {"host": {"minLength": 1}}}
+    }
+  }
+}
