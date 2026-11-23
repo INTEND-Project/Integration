@@ -21,7 +21,7 @@ global:
   # the same digests as master at that date. "master" = whatever master is now.
   imageTag: intend-munich-2026      # used by every component that does not set image.tag
   imagePullPolicy: IfNotPresent
-  imagePullSecrets: []              # e.g. [{name: rd-registry}], created by hand (see README)
+  imagePullSecrets: [{name: innet-inorch-secrets-image-pull}]              # e.g. [{name: rd-registry}], created by hand (see README)
   hostAliases: []                   # compose extra_hosts, e.g. [{ip: 10.30.8.178, hostnames: [10.10.0.224.nip.io]}]
   waitImage: busybox:1.37           # init containers that wait for a TCP port (compose depends_on)
   clusterDomain: cluster.local      # used to build the full Service names the GUI's nginx resolves
