@@ -1,7 +1,7 @@
 # Set these image digests from the successful protected-tag GitLab publish job.
 # Example: ghcr.io/intend-project/insustain-backend@sha256:<digest>
 imagePullSecrets:
-  name: ""
+  name: "insustain-secrets-image-pull"
 
 serviceAccount:
   # Empty derives the managed account name; required when rbac.create=false.
@@ -39,11 +39,11 @@ backend:
     authSource: insustain
     authMechanism: ""
     usernameSecret:
-      name: insustain-mongodb-auth
-      key: username
+      name: insustain-secrets
+      key: MONGODB_USER
     passwordSecret:
-      name: insustain-mongodb-auth
-      key: password
+      name: insustain-secrets
+      key: MONGODB_PASSWORD
 
 frontend:
   replicaCount: 1

@@ -29,3 +29,7 @@ imagePullSecrets:
 {{- fail "rbac.targetNamespaces cannot be combined with rbac.clusterWide" -}}
 {{- end -}}
 {{- end }}
+
+{{- define "insustain.secretName" -}}
+{{- default (printf "%s-secrets" .Release.Name) .Values.secrets.existingSecret -}}
+{{- end }}
