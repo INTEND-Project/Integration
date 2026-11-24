@@ -16,7 +16,7 @@ global:
   # operation-management, GUI, agents, knowledge graph Job). Data services (StatefulSets) and mocks keep the compose
   # names. "" = no prefix. Lower-case letters, digits and '-', at most 30 characters.
   namePrefix: innet-and-inorch
-  imageRegistry: rd-registry.nextworks.it:443
+  imageRegistry: rd-registry.nextworks.it
   # Release tag of every Intent Manager image (and of the mocks below): the images tested together on 2026-11-17,
   # the same digests as master at that date. "master" = whatever master is now.
   imageTag: intend-munich-2026      # used by every component that does not set image.tag
