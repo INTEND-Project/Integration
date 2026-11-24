@@ -3,6 +3,9 @@
 imagePullSecrets:
   name: "insustain-secrets-image-pull"
 
+secrets:
+  existingSecret: "insustain-secrets"
+
 serviceAccount:
   # Empty derives the managed account name; required when rbac.create=false.
   name: ""
